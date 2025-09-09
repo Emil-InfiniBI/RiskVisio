@@ -27,21 +27,10 @@ jobs:
       - name: Build (Vite + TypeScript)
         run: npm run build
 
-      # (Optional) Run lint or tests here
-      # - run: npm run lint
-      # - run: npm test
-
-      - name: Deploy to Azure Web App
+      - name: Deploy to Azure Web App (ZIP)
         uses: azure/webapps-deploy@v3
         with:
-          app-name: RiskVisio-demo  # Actual App Service name
-          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE }}
+          app-name: RiskVisio-demo
+          slot-name: production
           package: .
-          # You can set slot-name: production if you add deployment slots later
-
-# Setup instructions:
-# 1. In Azure Portal > Your App Service > Overview > Get publish profile. Download.
-# 2. In GitHub repo: Settings > Secrets and variables > Actions > New secret.
-#    Name: AZUREAPPSERVICE_PUBLISHPROFILE  Value: (entire contents of the publish profile .PublishSettings file)
-# 3. Commit this workflow on main. Push. The action will build and deploy automatically.
-# 4. Future pushes to main trigger a redeploy.
+          # Using basic deployment without publish profile
