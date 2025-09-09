@@ -3,6 +3,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import sqlite3 from 'sqlite3';
 import { randomBytes, createHash } from 'crypto';
+import fs from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -17,9 +18,31 @@ app.use(express.json());
 const SINGLE_API_KEY = process.env.RISKVISIO_API_KEY;
 const ADMIN_KEY = process.env.RISKVISIO_ADMIN_KEY; // if set, required for create/revoke operations
 
-// Initialize SQLite database
-const dbPath = path.join(__dirname, 'data.db');
-const db = new sqlite3.Database(dbPath);
+// Initialize SQLite database with persistent storage
+// Use Azure App Service persistent storage: /home/site/wwwroot for persistence across deployments
+const dbPath = process.env.NODE_ENV === 'production' 
+  ? '/home/data/data.db'  // Azure persistent storage directory
+  : path.join(__dirname, 'data.db');  // Local development
+
+// Ensure data directory exists in production
+if (process.env.NODE_ENV === 'production') {
+  const fs = require('fs');
+  const dataDir = '/home/data';
+  if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir, { recursive: true });
+    console.log('✓ Created persistent data directory:', dataDir);
+  }
+}
+
+console.log('📁 Database location:', dbPath);
+const db = new sqlite3.Database(dbPath, (err) => {
+  if (err) {
+    console.error('❌ Database connection failed:', err.message);
+    process.exit(1);
+  } else {
+    console.log('✅ Connected to SQLite database at:', dbPath);
+  }
+});
 
 // Initialize database tables on startup
 db.serialize(() => {
@@ -192,6 +215,88 @@ db.serialize(() => {
     }
   });
 });
+
+// 🔒 DATA PROTECTION SYSTEM
+// Automatic backup functionality to prevent data loss
+function createDatabaseBackup() {
+  try {
+    if (!fs.existsSync(dbPath)) return false;
+    
+    const backupDir = process.env.NODE_ENV === 'production' 
+      ? '/home/data/backups' 
+      : path.join(__dirname, 'backups');
+    
+    if (!fs.existsSync(backupDir)) {
+      fs.mkdirSync(backupDir, { recursive: true });
+    }
+    
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const backupPath = path.join(backupDir, `data-backup-${timestamp}.db`);
+    
+    fs.copyFileSync(dbPath, backupPath);
+    console.log('✅ Database backup created:', backupPath);
+    
+    // Keep only last 10 backups to manage disk space
+    const backups = fs.readdirSync(backupDir)
+      .filter(file => file.startsWith('data-backup-') && file.endsWith('.db'))
+      .sort()
+      .reverse();
+    
+    if (backups.length > 10) {
+      backups.slice(10).forEach(backup => {
+        const oldBackup = path.join(backupDir, backup);
+        fs.unlinkSync(oldBackup);
+        console.log('🗑️ Removed old backup:', backup);
+      });
+    }
+    
+    return backupPath;
+  } catch (error) {
+    console.error('❌ Backup failed:', error.message);
+    return false;
+  }
+}
+
+// Create initial backup on startup
+setTimeout(() => {
+  createDatabaseBackup();
+}, 5000);
+
+// Schedule automatic backups every 6 hours
+setInterval(() => {
+  createDatabaseBackup();
+}, 6 * 60 * 60 * 1000);
+
+// Graceful shutdown with final backup
+process.on('SIGTERM', () => {
+  console.log('🔄 Graceful shutdown initiated...');
+  createDatabaseBackup();
+  db.close((err) => {
+    if (err) console.error('❌ Database close error:', err.message);
+    else console.log('✅ Database connection closed.');
+    process.exit(0);
+  });
+});
+
+process.on('SIGINT', () => {
+  console.log('🔄 Graceful shutdown initiated...');
+  createDatabaseBackup();
+  db.close((err) => {
+    if (err) console.error('❌ Database close error:', err.message);
+    else console.log('✅ Database connection closed.');
+    process.exit(0);
+  });
+});
+
+// Database health monitoring
+function checkDatabaseHealth() {
+  return new Promise((resolve, reject) => {
+    db.get('SELECT 1 as test', (err, row) => {
+      if (err) reject(err);
+      else resolve(row?.test === 1);
+    });
+  });
+}
 
 // Helper utilities for API keys
 function generateRandomString(bytes = 16) {
@@ -558,6 +663,89 @@ app.get('/api/database/schema', (req, res) => {
       });
     });
   });
+});
+
+// 🔒 BACKUP MANAGEMENT ENDPOINTS
+// Manual backup creation
+app.post('/api/database/backup', (req, res) => {
+  try {
+    const backupPath = createDatabaseBackup();
+    if (backupPath) {
+      res.json({ 
+        success: true, 
+        message: 'Backup created successfully',
+        backupPath: backupPath,
+        timestamp: new Date().toISOString()
+      });
+    } else {
+      res.status(500).json({ error: 'Backup creation failed' });
+    }
+  } catch (error) {
+    res.status(500).json({ error: 'Backup creation failed: ' + error.message });
+  }
+});
+
+// List available backups
+app.get('/api/database/backups', (req, res) => {
+  try {
+    const backupDir = process.env.NODE_ENV === 'production' 
+      ? '/home/data/backups' 
+      : path.join(__dirname, 'backups');
+    
+    if (!fs.existsSync(backupDir)) {
+      return res.json({ backups: [] });
+    }
+    
+    const backups = fs.readdirSync(backupDir)
+      .filter(file => file.startsWith('data-backup-') && file.endsWith('.db'))
+      .map(file => {
+        const filePath = path.join(backupDir, file);
+        const stats = fs.statSync(filePath);
+        return {
+          filename: file,
+          created: stats.birthtime,
+          size: stats.size,
+          path: filePath
+        };
+      })
+      .sort((a, b) => new Date(b.created) - new Date(a.created));
+    
+    res.json({ 
+      backups,
+      currentDatabase: dbPath,
+      backupDirectory: backupDir 
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to list backups: ' + error.message });
+  }
+});
+
+// Database health check
+app.get('/api/database/health', async (req, res) => {
+  try {
+    const isHealthy = await checkDatabaseHealth();
+    const stats = fs.statSync(dbPath);
+    
+    res.json({
+      healthy: isHealthy,
+      database: {
+        path: dbPath,
+        size: stats.size,
+        created: stats.birthtime,
+        modified: stats.mtime
+      },
+      backupStatus: {
+        autoBackupEnabled: true,
+        intervalHours: 6,
+        lastBackupCheck: new Date().toISOString()
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      healthy: false, 
+      error: error.message 
+    });
+  }
 });
 
 // Serve static assets from Vite build output
