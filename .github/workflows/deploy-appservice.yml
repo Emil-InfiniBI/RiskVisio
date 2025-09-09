@@ -1,4 +1,4 @@
-name: Deploy RiskVisio to Azure App Service
+name: Deploy RiskVisio to Azure App Service (OIDC)
 
 on:
   push:
@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: read
+  id-token: write  # needed for azure/login OIDC
 
 jobs:
   build-and-deploy:
@@ -27,9 +28,15 @@ jobs:
       - name: Build (Vite + TypeScript)
         run: npm run build
 
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_A41DC22AFEC742078C283A38393B30BC }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_64894F730CFD4E268851C5200D8444AF }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_F5C65160F75D4C699DD58694BA57EF83 }}
+
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
           app-name: RiskVisio-demo
-          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE }}
           package: .
