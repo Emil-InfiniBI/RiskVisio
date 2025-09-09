@@ -29,37 +29,125 @@ function App() {
   const [users, setUsers] = useState<User[]>([]); // server-backed now
   const [showUserManagement, setShowUserManagement] = useState(false);
 
-  // Initialize admin user if no users exist
   // Initial server load for users & occurrences
   useEffect(() => {
-    (async () => {
+    let retryCount = 0;
+    const maxRetries = 3;
+    
+    const loadInitialData = async () => {
       try {
-        const usersRes = await fetch('/api/users');
-        const occRes = await fetch('/api/occurrences');
+        console.log('Loading initial data from server...');
+        
+        // Add timeout to API calls
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+        
+        const usersRes = await fetch('/api/users', { signal: controller.signal });
+        const occRes = await fetch('/api/occurrences', { signal: controller.signal });
+        
+        clearTimeout(timeoutId);
+        
+        if (!usersRes.ok || !occRes.ok) {
+          throw new Error(`Server error: Users ${usersRes.status}, Occurrences ${occRes.status}`);
+        }
+        
         const usersData = await usersRes.json();
         const occData = await occRes.json();
+        
+        console.log('Loaded users:', usersData.length, 'occurrences:', occData.length);
+        
+        // Ensure we have default users - create them if missing
         if (Array.isArray(usersData) && usersData.length === 0) {
-          const adminUser: User = {
-            id: '1',
-            username: 'admin',
-            password: 'admin',
-            role: 'admin',
-            fullName: 'System Administrator',
-            email: 'admin@company.com',
-            factories: ['BTL', 'BTO', 'BTI', 'BTX', 'BTT', 'BTG'],
-            isActive: true,
-            createdDate: new Date().toISOString().split('T')[0]
-          };
-            await fetch('/api/users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(adminUser) });
-            setUsers([adminUser]);
+          console.log('No users found, creating default users...');
+          const defaultUsers: User[] = [
+            {
+              id: 'user_admin',
+              username: 'admin',
+              password: 'admin',
+              role: 'admin' as UserRole,
+              fullName: 'System Administrator',
+              email: 'admin@riskvisio.com',
+              factories: ['BTL', 'BTG', 'BTT'] as Factory[],
+              isActive: true,
+              createdDate: new Date().toISOString().split('T')[0]
+            },
+            {
+              id: 'user_manager_btl',
+              username: 'manager_btl',
+              password: 'demo123',
+              role: 'user' as UserRole,
+              fullName: 'BTL Manager',
+              email: 'manager.btl@riskvisio.com',
+              factories: ['BTL'] as Factory[],
+              isActive: true,
+              createdDate: new Date().toISOString().split('T')[0]
+            },
+            {
+              id: 'user_btg',
+              username: 'user_btg',
+              password: 'demo123',
+              role: 'user' as UserRole,
+              fullName: 'BTG User',
+              email: 'user.btg@riskvisio.com',
+              factories: ['BTG'] as Factory[],
+              isActive: true,
+              createdDate: new Date().toISOString().split('T')[0]
+            }
+          ];
+          
+          // Create users one by one to avoid race conditions
+          for (const user of defaultUsers) {
+            try {
+              await fetch('/api/users', { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify(user) 
+              });
+              console.log('✓ Created default user:', user.username);
+            } catch (err) {
+              console.error('Error creating user:', user.username, err);
+            }
+          }
+          
+          setUsers(defaultUsers);
         } else {
-          setUsers(usersData);
+          setUsers(Array.isArray(usersData) ? usersData : []);
         }
+        
         setOccurrences(Array.isArray(occData) ? occData : []);
-      } catch (e) {
-        console.error('Failed initial load', e);
+        console.log('✓ Initial data load complete');
+        
+      } catch (error) {
+        console.error('Failed initial load attempt', retryCount + 1, error);
+        
+        if (retryCount < maxRetries) {
+          retryCount++;
+          const delay = Math.pow(2, retryCount) * 1000; // Exponential backoff
+          console.log(`Retrying in ${delay}ms...`);
+          setTimeout(loadInitialData, delay);
+        } else {
+          console.error('All retry attempts failed, using fallback data');
+          // Fallback to default users for offline/failure scenarios
+          const fallbackUsers = [
+            {
+              id: 'user_admin',
+              username: 'admin',
+              password: 'admin',
+              role: 'admin' as UserRole,
+              fullName: 'System Administrator',
+              email: 'admin@riskvisio.com',
+              factories: ['BTL', 'BTG', 'BTT'] as Factory[],
+              isActive: true,
+              createdDate: new Date().toISOString().split('T')[0]
+            }
+          ];
+          setUsers(fallbackUsers);
+          setOccurrences([]);
+        }
       }
-    })();
+    };
+    
+    loadInitialData();
   }, []);
 
   // App data

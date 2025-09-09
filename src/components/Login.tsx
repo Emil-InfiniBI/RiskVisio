@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Shield, Lock, User } from 'lucide-react';
 import { User as UserType } from '@/types';
+import { ConnectionStatus } from './ConnectionStatus';
 
 interface LoginProps {
   users: UserType[];
@@ -23,15 +24,31 @@ export function Login({ users, onLogin }: LoginProps) {
     setError('');
 
     try {
+      // First check if users are loaded
+      if (!users || users.length === 0) {
+        console.log('No users available, waiting for server...');
+        setError('System is starting up, please wait a moment and try again.');
+        setIsLoading(false);
+        return;
+      }
+
       const user = users.find(u => u.username === username && u.password === password && u.isActive);
       
       if (user) {
+        console.log('Login successful for user:', user.username);
         onLogin(user);
       } else {
-        setError('Invalid username or password');
+        // Check if the username exists but password is wrong
+        const existingUser = users.find(u => u.username === username);
+        if (existingUser) {
+          setError('Invalid password. Please try again.');
+        } else {
+          setError('Invalid username or password. Use: admin/admin, manager_btl/demo123, or user_btg/demo123');
+        }
       }
     } catch (err) {
-      setError('Login failed. Please try again.');
+      console.error('Login error:', err);
+      setError('Login failed. Please check your connection and try again.');
     } finally {
       setIsLoading(false);
     }
@@ -59,12 +76,19 @@ export function Login({ users, onLogin }: LoginProps) {
               <Lock className="h-5 w-5" />
               Sign In
             </CardTitle>
-            <CardDescription>
-              Enter your credentials to access the system
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <CardDescription className="text-center">
+            Enter your credentials to access the Risk Management System
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {/* Connection Status */}
+          <div className="mb-4 pb-4 border-b border-border">
+            <div className="flex justify-center">
+              <ConnectionStatus onRetry={() => window.location.reload()} />
+            </div>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="username">Username</Label>
                 <div className="relative">
@@ -111,6 +135,21 @@ export function Login({ users, onLogin }: LoginProps) {
                 {isLoading ? 'Signing in...' : 'Sign In'}
               </Button>
             </form>
+
+            {/* Demo credentials info */}
+            <div className="mt-6 pt-4 border-t border-border">
+              <div className="text-sm text-muted-foreground">
+                <p className="font-medium mb-2">Demo Credentials:</p>
+                <div className="space-y-1 text-xs">
+                  <div><strong>Admin:</strong> admin / admin</div>
+                  <div><strong>Manager:</strong> manager_btl / demo123</div>
+                  <div><strong>User:</strong> user_btg / demo123</div>
+                </div>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  If login fails, the system may still be starting up. Please wait a moment and try again.
+                </p>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
