@@ -2,7 +2,21 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Incident, Risk, ComplianceItem, Investigation, Occurrence } from '@/types';
-import { AlertTriangle, Shield, FileText, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { 
+  AlertTriangle, 
+  Shield, 
+  FileText, 
+  TrendingUp, 
+  TrendingDown, 
+  Minus,
+  Clock,
+  BarChart3,
+  CheckCircle2,
+  Search,
+  Activity,
+  Eye,
+  AlertCircle
+} from 'lucide-react';
 
 interface DashboardProps {
   incidents: Incident[];
@@ -93,211 +107,351 @@ export function Dashboard({ incidents, risks, compliance, investigations, occurr
   // (Removed occurrencesByType aggregation as dashboard now shows explicit cards)
 
   return (
-    <div className="space-y-6">
-      {/* Alerts and High Priority Items */}
+    <div className="space-y-8">
+      {/* Alert Banner - Only show if there are critical items */}
       {(criticalIncidents.length > 0 || overdueCompliance.length > 0 || highRisks.length > 0) && (
-        <Card className="border-destructive">
-          <CardHeader>
-            <CardTitle className="text-destructive flex items-center">
-              <AlertTriangle className="h-5 w-5 mr-2" />
-              Immediate Attention Required
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {criticalIncidents.length > 0 && (
-                <div className="flex items-center justify-between p-2 bg-destructive/10 rounded">
-                  <span className="text-sm font-medium">{criticalIncidents.length} Critical Incidents</span>
-                  <Badge className="bg-destructive">Action Required</Badge>
-                </div>
-              )}
-              {overdueCompliance.length > 0 && (
-                <div className="flex items-center justify-between p-2 bg-destructive/10 rounded">
-                  <span className="text-sm font-medium">{overdueCompliance.length} Overdue Compliance Items</span>
-                  <Badge className="bg-destructive">Overdue</Badge>
-                </div>
-              )}
-              {highRisks.length > 0 && (
-                <div className="flex items-center justify-between p-2 bg-accent/10 rounded">
-                  <span className="text-sm font-medium">{highRisks.length} High-Risk Items</span>
-                  <Badge className="bg-accent">Monitor</Badge>
-                </div>
-              )}
+        <div className="bg-gradient-to-r from-red-50 to-orange-50 border border-red-200 rounded-xl p-6">
+          <div className="flex items-start gap-4">
+            <div className="flex-shrink-0">
+              <AlertTriangle className="h-8 w-8 text-red-600" />
             </div>
-          </CardContent>
-        </Card>
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold text-red-900 mb-3">
+                Immediate Attention Required
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                {criticalIncidents.length > 0 && (
+                  <div className="bg-white/80 rounded-lg p-3 border border-red-100">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-red-800">
+                        {criticalIncidents.length} Critical Incident{criticalIncidents.length !== 1 ? 's' : ''}
+                      </span>
+                      <Badge variant="destructive" className="text-xs">Urgent</Badge>
+                    </div>
+                  </div>
+                )}
+                {overdueCompliance.length > 0 && (
+                  <div className="bg-white/80 rounded-lg p-3 border border-red-100">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-red-800">
+                        {overdueCompliance.length} Overdue Compliance
+                      </span>
+                      <Badge variant="destructive" className="text-xs">Overdue</Badge>
+                    </div>
+                  </div>
+                )}
+                {highRisks.length > 0 && (
+                  <div className="bg-white/80 rounded-lg p-3 border border-orange-100">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-orange-800">
+                        {highRisks.length} High-Risk Item{highRisks.length !== 1 ? 's' : ''}
+                      </span>
+                      <Badge variant="secondary" className="text-xs bg-orange-100 text-orange-800">Monitor</Badge>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
-      {/* Analytics Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-        <Card className={"relative overflow-hidden border-2 " + (daysSinceLastAccident === null ? 'border-muted' : daysSinceLastAccident >= 30 ? 'border-green-500' : daysSinceLastAccident >= 7 ? 'border-yellow-500' : 'border-destructive')}> 
-          <div className="absolute inset-0 opacity-10 pointer-events-none bg-gradient-to-br from-green-400 via-amber-300 to-red-400 mix-blend-multiply" />
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <span className="inline-flex items-center justify-center rounded-full h-6 w-6 text-xs font-semibold bg-primary/10 text-primary">
-                {daysSinceLastAccident !== null ? '⏱️' : 'ℹ️'}
-              </span>
-              Days Since Last Accident
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <div className="flex items-baseline gap-2">
-              <span className={"text-4xl font-extrabold tracking-tight " + (daysSinceLastAccident === null ? 'text-muted-foreground' : daysSinceLastAccident >= 30 ? 'text-green-600' : daysSinceLastAccident >= 7 ? 'text-yellow-600' : 'text-destructive')}>
-                {daysSinceLastAccident !== null ? daysSinceLastAccident : '—'}
-              </span>
-              {daysSinceLastAccident !== null && <span className="text-xs font-medium uppercase text-muted-foreground">days</span>}
+      {/* Key Performance Indicators */}
+      <div>
+        <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <BarChart3 className="h-5 w-5 text-blue-600" />
+          Safety Performance Overview
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+          {/* Days Since Last Accident - Featured Card */}
+          <Card className={`relative overflow-hidden border-2 transition-all duration-200 hover:shadow-lg ${
+            daysSinceLastAccident === null ? 'border-gray-200 bg-gray-50' : 
+            daysSinceLastAccident >= 30 ? 'border-green-200 bg-green-50' : 
+            daysSinceLastAccident >= 7 ? 'border-yellow-200 bg-yellow-50' : 
+            'border-red-200 bg-red-50'
+          }`}>
+            <div className="absolute top-0 right-0 w-20 h-20 opacity-10">
+              <Clock className="w-full h-full" />
             </div>
-            <p className="text-xs mt-1 font-medium">
-              {daysSinceLastAccident === null && 'No accidents recorded yet'}
-              {daysSinceLastAccident !== null && daysSinceLastAccident < 7 && 'Recent accident – focus on prevention'}
-              {daysSinceLastAccident !== null && daysSinceLastAccident >= 7 && daysSinceLastAccident < 30 && 'Good progress – keep momentum'}
-              {daysSinceLastAccident !== null && daysSinceLastAccident >= 30 && 'Great streak – celebrate & reinforce'}
-            </p>
-            {lastAccidentDate && (
-              <p className="text-[10px] mt-2 text-muted-foreground">Last accident: {lastAccidentDate.toLocaleDateString()}</p>
-            )}
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">Monthly Incidents</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-between">
-              <span className="text-2xl font-bold">{thisMonthIncidents.length}</span>
-              <div className="flex items-center">
-                <incidentTrend.icon className={`h-4 w-4 ${incidentTrend.color}`} />
-                <span className="text-sm text-muted-foreground ml-1">vs last month</span>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                <div className={`p-1.5 rounded-full ${
+                  daysSinceLastAccident === null ? 'bg-gray-100' :
+                  daysSinceLastAccident >= 30 ? 'bg-green-100' :
+                  daysSinceLastAccident >= 7 ? 'bg-yellow-100' : 'bg-red-100'
+                }`}>
+                  <Clock className={`h-3 w-3 ${
+                    daysSinceLastAccident === null ? 'text-gray-600' :
+                    daysSinceLastAccident >= 30 ? 'text-green-600' :
+                    daysSinceLastAccident >= 7 ? 'text-yellow-600' : 'text-red-600'
+                  }`} />
+                </div>
+                Days Since Last Accident
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="space-y-2">
+                <div className="flex items-baseline gap-2">
+                  <span className={`text-3xl font-bold tracking-tight ${
+                    daysSinceLastAccident === null ? 'text-gray-400' :
+                    daysSinceLastAccident >= 30 ? 'text-green-600' :
+                    daysSinceLastAccident >= 7 ? 'text-yellow-600' : 'text-red-600'
+                  }`}>
+                    {daysSinceLastAccident !== null ? daysSinceLastAccident : '—'}
+                  </span>
+                  {daysSinceLastAccident !== null && (
+                    <span className="text-xs font-medium text-gray-500 uppercase">days</span>
+                  )}
+                </div>
+                <div className="text-xs font-medium">
+                  {daysSinceLastAccident === null && (
+                    <span className="text-gray-500">No accidents recorded</span>
+                  )}
+                  {daysSinceLastAccident !== null && daysSinceLastAccident < 7 && (
+                    <span className="text-red-600">Recent accident - focus on prevention</span>
+                  )}
+                  {daysSinceLastAccident !== null && daysSinceLastAccident >= 7 && daysSinceLastAccident < 30 && (
+                    <span className="text-yellow-600">Good progress - maintain momentum</span>
+                  )}
+                  {daysSinceLastAccident !== null && daysSinceLastAccident >= 30 && (
+                    <span className="text-green-600">Excellent safety record!</span>
+                  )}
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">Compliance Rate</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <span className="text-2xl font-bold">{complianceRate.toFixed(1)}%</span>
-              <Progress value={complianceRate} className="h-2" />
-            </div>
-          </CardContent>
-        </Card>
+          {/* Monthly Incidents */}
+          <Card className="hover:shadow-lg transition-shadow duration-200">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                <div className="p-1.5 rounded-full bg-blue-100">
+                  <AlertCircle className="h-3 w-3 text-blue-600" />
+                </div>
+                Monthly Incidents
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="flex items-center justify-between">
+                <span className="text-3xl font-bold text-gray-900">{thisMonthIncidents.length}</span>
+                <div className="flex items-center gap-1">
+                  <incidentTrend.icon className={`h-4 w-4 ${incidentTrend.color}`} />
+                  <span className="text-xs text-gray-500">vs last month</span>
+                </div>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                {lastMonthIncidents.length} incidents last month
+              </p>
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">Active Investigations</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <span className="text-2xl font-bold">{activeInvestigations.length}</span>
-            <p className="text-xs text-muted-foreground mt-1">
-              {investigations.filter(i => i.status === 'completed').length} completed this month
-            </p>
-          </CardContent>
-        </Card>
+          {/* Compliance Rate */}
+          <Card className="hover:shadow-lg transition-shadow duration-200">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                <div className="p-1.5 rounded-full bg-green-100">
+                  <CheckCircle2 className="h-3 w-3 text-green-600" />
+                </div>
+                Compliance Rate
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="space-y-3">
+                <span className="text-3xl font-bold text-gray-900">{complianceRate.toFixed(1)}%</span>
+                <div className="space-y-1">
+                  <Progress value={complianceRate} className="h-2" />
+                  <p className="text-xs text-gray-500">
+                    {compliance.filter(c => c.status === 'compliant').length} of {compliance.length} items compliant
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">Risk Exposure</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <span className="text-2xl font-bold">{highRisks.length}</span>
-            <p className="text-xs text-muted-foreground mt-1">high-risk items</p>
-          </CardContent>
-        </Card>
+          {/* Active Investigations */}
+          <Card className="hover:shadow-lg transition-shadow duration-200">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                <div className="p-1.5 rounded-full bg-purple-100">
+                  <Search className="h-3 w-3 text-purple-600" />
+                </div>
+                Active Investigations
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <span className="text-3xl font-bold text-gray-900">{activeInvestigations.length}</span>
+              <p className="text-xs text-gray-500 mt-1">
+                {investigations.filter(i => i.status === 'completed').length} completed this month
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* Risk Exposure */}
+          <Card className="hover:shadow-lg transition-shadow duration-200">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                <div className="p-1.5 rounded-full bg-orange-100">
+                  <Shield className="h-3 w-3 text-orange-600" />
+                </div>
+                Risk Exposure
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <span className="text-3xl font-bold text-gray-900">{highRisks.length}</span>
+              <p className="text-xs text-gray-500 mt-1">high-risk items requiring attention</p>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
-  {/* (Removed Incident Severity Breakdown & Incidents by Type) */}
-
-      {/* Recent Activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Near Misses</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {nearMissOccurrences.length === 0 ? (
-              <p className="text-muted-foreground text-sm">No near misses reported yet.</p>
-            ) : (
-              <div className="space-y-3">
-                {nearMissOccurrences.map((nm) => (
-                  <div key={nm.id} className="flex items-center justify-between p-2 border rounded">
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">{nm.title}</p>
-                      <p className="text-xs text-muted-foreground">{nm.reportedDate} • {nm.location}</p>
+      {/* Recent Activity Section */}
+      <div>
+        <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <Activity className="h-5 w-5 text-blue-600" />
+          Recent Activity
+        </h2>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Recent Near Misses */}
+          <Card className="hover:shadow-lg transition-shadow duration-200">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-base font-semibold text-gray-900 flex items-center gap-2">
+                <Eye className="h-4 w-4 text-yellow-600" />
+                Near Misses
+                <Badge variant="outline" className="ml-auto text-xs">
+                  {nearMissOccurrences.length}
+                </Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              {nearMissOccurrences.length === 0 ? (
+                <div className="text-center py-8">
+                  <Eye className="h-8 w-8 text-gray-300 mx-auto mb-2" />
+                  <p className="text-sm text-gray-500">No near misses reported</p>
+                  <p className="text-xs text-gray-400">Great safety awareness!</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {nearMissOccurrences.map((nm) => (
+                    <div key={nm.id} className="group p-3 border border-gray-100 rounded-lg hover:border-gray-200 hover:bg-gray-50 transition-colors duration-200">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900 truncate group-hover:text-gray-700">
+                            {nm.title}
+                          </p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-xs text-gray-500">{nm.reportedDate}</span>
+                            <span className="text-xs text-gray-400">•</span>
+                            <span className="text-xs text-gray-500 truncate">{nm.location}</span>
+                          </div>
+                        </div>
+                        <Badge 
+                          variant={nm.priority === 'critical' ? 'destructive' : 'secondary'}
+                          className="ml-2 flex-shrink-0 text-xs"
+                        >
+                          {nm.priority}
+                        </Badge>
+                      </div>
                     </div>
-                    <Badge className={
-                      nm.priority === 'critical' ? 'bg-destructive' :
-                      nm.priority === 'high' ? 'bg-accent' :
-                      nm.priority === 'medium' ? 'bg-yellow-500' : 'bg-green-500'
-                    }>
-                      {nm.priority}
-                    </Badge>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Incidents</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {recentIncidentOccurrences.length === 0 ? (
-              <p className="text-muted-foreground text-sm">No incidents reported yet.</p>
-            ) : (
-              <div className="space-y-3">
-                {recentIncidentOccurrences.map((occ) => (
-                  <div key={occ.id} className="flex items-center justify-between p-2 border rounded">
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">{occ.title}</p>
-                      <p className="text-xs text-muted-foreground">{occ.reportedDate} • {occ.location}</p>
+          {/* Recent Incidents */}
+          <Card className="hover:shadow-lg transition-shadow duration-200">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-base font-semibold text-gray-900 flex items-center gap-2">
+                <AlertCircle className="h-4 w-4 text-red-600" />
+                Incidents
+                <Badge variant="outline" className="ml-auto text-xs">
+                  {recentIncidentOccurrences.length}
+                </Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              {recentIncidentOccurrences.length === 0 ? (
+                <div className="text-center py-8">
+                  <AlertCircle className="h-8 w-8 text-gray-300 mx-auto mb-2" />
+                  <p className="text-sm text-gray-500">No incidents reported</p>
+                  <p className="text-xs text-gray-400">Excellent safety record!</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {recentIncidentOccurrences.map((inc) => (
+                    <div key={inc.id} className="group p-3 border border-gray-100 rounded-lg hover:border-gray-200 hover:bg-gray-50 transition-colors duration-200">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900 truncate group-hover:text-gray-700">
+                            {inc.title}
+                          </p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-xs text-gray-500">{inc.reportedDate}</span>
+                            <span className="text-xs text-gray-400">•</span>
+                            <span className="text-xs text-gray-500 truncate">{inc.location}</span>
+                          </div>
+                        </div>
+                        <Badge 
+                          variant={inc.priority === 'critical' ? 'destructive' : 'secondary'}
+                          className="ml-2 flex-shrink-0 text-xs"
+                        >
+                          {inc.priority}
+                        </Badge>
+                      </div>
                     </div>
-                    <Badge className={
-                      occ.priority === 'critical' ? 'bg-destructive' :
-                      occ.priority === 'high' ? 'bg-accent' :
-                      occ.priority === 'medium' ? 'bg-yellow-500' : 'bg-green-500'
-                    }>
-                      {occ.priority}
-                    </Badge>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Risks</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {recentRiskOccurrences.length === 0 ? (
-              <p className="text-muted-foreground text-sm">No risk observations yet.</p>
-            ) : (
-              <div className="space-y-3">
-                {recentRiskOccurrences.map((occ) => (
-                  <div key={occ.id} className="flex items-center justify-between p-2 border rounded">
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">{occ.title}</p>
-                      <p className="text-xs text-muted-foreground">{occ.reportedDate} • observation</p>
+          {/* Recent Risk Observations */}
+          <Card className="hover:shadow-lg transition-shadow duration-200">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-base font-semibold text-gray-900 flex items-center gap-2">
+                <Shield className="h-4 w-4 text-orange-600" />
+                Risk Observations
+                <Badge variant="outline" className="ml-auto text-xs">
+                  {recentRiskOccurrences.length}
+                </Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              {recentRiskOccurrences.length === 0 ? (
+                <div className="text-center py-8">
+                  <Shield className="h-8 w-8 text-gray-300 mx-auto mb-2" />
+                  <p className="text-sm text-gray-500">No risk observations</p>
+                  <p className="text-xs text-gray-400">Consider proactive reporting</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {recentRiskOccurrences.map((risk) => (
+                    <div key={risk.id} className="group p-3 border border-gray-100 rounded-lg hover:border-gray-200 hover:bg-gray-50 transition-colors duration-200">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900 truncate group-hover:text-gray-700">
+                            {risk.title}
+                          </p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-xs text-gray-500">{risk.reportedDate}</span>
+                            <span className="text-xs text-gray-400">•</span>
+                            <span className="text-xs text-gray-500">observation</span>
+                          </div>
+                        </div>
+                        <Badge 
+                          variant={risk.priority === 'critical' ? 'destructive' : 'secondary'}
+                          className="ml-2 flex-shrink-0 text-xs"
+                        >
+                          {risk.priority}
+                        </Badge>
+                      </div>
                     </div>
-                    <Badge className={
-                      occ.priority === 'critical' ? 'bg-destructive' :
-                      occ.priority === 'high' ? 'bg-accent' :
-                      occ.priority === 'medium' ? 'bg-yellow-500' : 'bg-green-500'
-                    }>
-                      {occ.priority}
-                    </Badge>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );

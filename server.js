@@ -136,6 +136,61 @@ db.serialize(() => {
     revokedDate TEXT,
     revokedBy TEXT
   )`);
+
+  // Insert default users if none exist
+  db.get('SELECT COUNT(*) as count FROM users', (err, row) => {
+    if (!err && row.count === 0) {
+      const defaultUsers = [
+        {
+          id: 'user_admin',
+          username: 'admin',
+          password: 'admin',
+          role: 'admin',
+          fullName: 'System Administrator',
+          email: 'admin@riskvisio.com',
+          factories: JSON.stringify(['BTL', 'BTG', 'BTT']),
+          isActive: 1,
+          createdDate: new Date().toISOString().split('T')[0]
+        },
+        {
+          id: 'user_manager_btl',
+          username: 'manager_btl',
+          password: 'demo123',
+          role: 'user',
+          fullName: 'BTL Manager',
+          email: 'manager.btl@riskvisio.com',
+          factories: JSON.stringify(['BTL']),
+          isActive: 1,
+          createdDate: new Date().toISOString().split('T')[0]
+        },
+        {
+          id: 'user_btg',
+          username: 'user_btg',
+          password: 'demo123',
+          role: 'user',
+          fullName: 'BTG User',
+          email: 'user.btg@riskvisio.com',
+          factories: JSON.stringify(['BTG']),
+          isActive: 1,
+          createdDate: new Date().toISOString().split('T')[0]
+        }
+      ];
+
+      defaultUsers.forEach(user => {
+        db.run(`INSERT INTO users (id, username, password, role, fullName, email, factories, isActive, createdDate, lastLogin)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [user.id, user.username, user.password, user.role, user.fullName, user.email, user.factories, user.isActive, user.createdDate, null],
+          (err) => {
+            if (err) {
+              console.error('Error creating default user:', user.username, err);
+            } else {
+              console.log('✓ Created default user:', user.username);
+            }
+          }
+        );
+      });
+    }
+  });
 });
 
 // Helper utilities for API keys
