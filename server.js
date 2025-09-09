@@ -102,6 +102,20 @@ db.serialize(() => {
     updatedAt TEXT,
     data TEXT
   )`);
+
+  // Users table
+  db.run(`CREATE TABLE IF NOT EXISTS users (
+    id TEXT PRIMARY KEY,
+    username TEXT UNIQUE,
+    password TEXT,
+    role TEXT,
+    fullName TEXT,
+    email TEXT,
+    factories TEXT,
+    isActive INTEGER,
+    createdDate TEXT,
+    lastLogin TEXT
+  )`);
 });
 
 // Basic health check for Azure App Service
@@ -255,6 +269,38 @@ app.get('/api/investigations', (req, res) => {
     }));
     
     res.json(investigations);
+  });
+});
+
+// Users endpoints
+app.get('/api/users', (_req, res) => {
+  db.all('SELECT * FROM users', (err, rows) => {
+    if (err) return res.status(500).json({ error: 'Database error' });
+    const users = rows.map(r => ({
+      ...r,
+      factories: r.factories ? JSON.parse(r.factories) : []
+    }));
+    res.json(users);
+  });
+});
+
+app.post('/api/users', (req, res) => {
+  const u = req.body;
+  const id = u.id || Date.now().toString();
+  const createdDate = u.createdDate || new Date().toISOString().split('T')[0];
+  db.run(`INSERT OR REPLACE INTO users (id, username, password, role, fullName, email, factories, isActive, createdDate, lastLogin)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [id, u.username, u.password, u.role, u.fullName, u.email, JSON.stringify(u.factories || []), u.isActive ? 1 : 0, createdDate, u.lastLogin || null],
+    function(err) {
+      if (err) return res.status(500).json({ error: 'Database error' });
+      res.json({ id, ...u, createdDate });
+    });
+});
+
+app.delete('/api/users/:id', (req, res) => {
+  db.run('DELETE FROM users WHERE id = ?', [req.params.id], function(err) {
+    if (err) return res.status(500).json({ error: 'Database error' });
+    res.json({ deleted: this.changes });
   });
 });
 

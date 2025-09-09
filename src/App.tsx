@@ -3,7 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { useLocalStorage } from '@/hooks';
+import { useLocalStorage } from '@/hooks'; // still used for other modules for now
 import { Incident, Risk, ComplianceItem, Investigation, Occurrence, Factory, User, UserRole } from '@/types';
 import { Login } from '@/components/Login';
 import { UserManagement } from '@/components/UserManagement';
@@ -25,33 +25,48 @@ import AdminPage from '@/components/AdminPage';
 function App() {
   // Authentication state
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [users, setUsers] = useLocalStorage<User[]>('users', []);
+  const [users, setUsers] = useState<User[]>([]); // server-backed now
   const [showUserManagement, setShowUserManagement] = useState(false);
 
   // Initialize admin user if no users exist
+  // Initial server load for users & occurrences
   useEffect(() => {
-    if (users.length === 0) {
-      const adminUser: User = {
-        id: '1',
-        username: 'admin',
-        password: 'admin',
-        role: 'admin',
-        fullName: 'System Administrator',
-        email: 'admin@company.com',
-        factories: ['BTL', 'BTO', 'BTI', 'BTX', 'BTT', 'BTG'],
-        isActive: true,
-        createdDate: new Date().toISOString().split('T')[0]
-      };
-      setUsers([adminUser]);
-    }
-  }, [users, setUsers]);
+    (async () => {
+      try {
+        const usersRes = await fetch('/api/users');
+        const occRes = await fetch('/api/occurrences');
+        const usersData = await usersRes.json();
+        const occData = await occRes.json();
+        if (Array.isArray(usersData) && usersData.length === 0) {
+          const adminUser: User = {
+            id: '1',
+            username: 'admin',
+            password: 'admin',
+            role: 'admin',
+            fullName: 'System Administrator',
+            email: 'admin@company.com',
+            factories: ['BTL', 'BTO', 'BTI', 'BTX', 'BTT', 'BTG'],
+            isActive: true,
+            createdDate: new Date().toISOString().split('T')[0]
+          };
+            await fetch('/api/users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(adminUser) });
+            setUsers([adminUser]);
+        } else {
+          setUsers(usersData);
+        }
+        setOccurrences(Array.isArray(occData) ? occData : []);
+      } catch (e) {
+        console.error('Failed initial load', e);
+      }
+    })();
+  }, []);
 
   // App data
   const [incidents, setIncidents] = useLocalStorage<Incident[]>('incidents', []);
   const [risks, setRisks] = useLocalStorage<Risk[]>('risks', []);
   const [compliance, setCompliance] = useLocalStorage<ComplianceItem[]>('compliance', []);
   const [investigations, setInvestigations] = useLocalStorage<Investigation[]>('investigations', []);
-  const [occurrences, setOccurrences] = useLocalStorage<Occurrence[]>('occurrences', []);
+  const [occurrences, setOccurrences] = useState<Occurrence[]>([]); // server-backed
   
   // UI state
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -75,6 +90,7 @@ function App() {
   const handleLogin = (user: User) => {
     const updatedUser = { ...user, lastLogin: new Date().toISOString() };
     setUsers((current = []) => current.map(u => u.id === user.id ? updatedUser : u));
+    fetch('/api/users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(updatedUser) }).catch(()=>{});
     setCurrentUser(updatedUser);
     
     // Set default factory for non-admin users
@@ -112,14 +128,17 @@ function App() {
   // User management handlers
   const handleAddUser = (user: User) => {
     setUsers((current = []) => [...current, user]);
+    fetch('/api/users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(user) }).catch(()=>{});
   };
 
   const handleUpdateUser = (updatedUser: User) => {
     setUsers((current = []) => current.map(user => user.id === updatedUser.id ? updatedUser : user));
+    fetch('/api/users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(updatedUser) }).catch(()=>{});
   };
 
   const handleDeleteUser = (id: string) => {
     setUsers((current = []) => current.filter(user => user.id !== id));
+    fetch(`/api/users/${id}`, { method: 'DELETE' }).catch(()=>{});
   };
 
   // Permission checks
@@ -277,8 +296,10 @@ function App() {
   };
 
   const handleAddOccurrence = (occurrence: Occurrence) => {
-    setOccurrences((current = []) => [...current, occurrence]);
-    setShowOccurrenceForm(false);
+    setOccurrences((current = []) => [occurrence, ...current]);
+    fetch('/api/occurrences', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(occurrence) })
+      .catch(()=>{})
+      .finally(() => setShowOccurrenceForm(false));
   };
 
   const handleUpdateOccurrence = (updatedOccurrence: Occurrence) => {
@@ -287,11 +308,13 @@ function App() {
         occurrence.id === updatedOccurrence.id ? updatedOccurrence : occurrence
       )
     );
+    fetch('/api/occurrences', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(updatedOccurrence) }).catch(()=>{});
     setEditingItem(null);
   };
 
   const handleDeleteOccurrence = (id: string) => {
     setOccurrences((current = []) => current.filter(occurrence => occurrence.id !== id));
+    // TODO: implement backend delete endpoint
   };
 
   // const openIncidentForInvestigation = (incident: Incident) => {
