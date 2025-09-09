@@ -32,14 +32,19 @@ export function Header({
           <div className="flex items-center space-x-3">
             <span className="text-3xl">🛡️</span>
             <div>
-              <h1 className="text-2xl font-bold text-foreground">
-                RiskVisio
-                {selectedFactory !== 'ALL' && (
-                  <span className="text-lg font-medium text-muted-foreground ml-2">
-                    - Factory {selectedFactory}
-                  </span>
-                )}
-              </h1>
+              <div className="flex items-center gap-3">
+                <h1 className="text-2xl font-bold text-foreground">
+                  RiskVisio
+                  {selectedFactory !== 'ALL' && (
+                    <span className="text-lg font-medium text-muted-foreground ml-2">
+                      - Factory {selectedFactory}
+                    </span>
+                  )}
+                </h1>
+                <Badge variant="destructive" className="bg-orange-500 hover:bg-orange-600 text-white font-bold px-3 py-1 text-sm">
+                  🧪 DEMO
+                </Badge>
+              </div>
               <p className="text-sm text-muted-foreground">
                 Unified Risk • Incident • Near Miss Platform
                 {selectedFactory === 'ALL' ? ' - All Factories' : ` - ${selectedFactory} Operations`}

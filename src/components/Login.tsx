@@ -44,7 +44,10 @@ export function Login({ users, onLogin }: LoginProps) {
           <div className="flex justify-center mb-4">
             <Shield className="h-12 w-12 text-primary" />
           </div>
-          <h1 className="text-3xl font-bold text-foreground">RiskVisio</h1>
+          <div className="flex items-center justify-center gap-3 mb-2">
+            <h1 className="text-3xl font-bold text-foreground">RiskVisio</h1>
+            <span className="bg-orange-500 text-white px-2 py-1 rounded text-sm font-bold">🧪 DEMO</span>
+          </div>
           <p className="text-muted-foreground mt-2">
             Unified Risk • Incident • Near Miss Platform
           </p>
@@ -108,13 +111,6 @@ export function Login({ users, onLogin }: LoginProps) {
                 {isLoading ? 'Signing in...' : 'Sign In'}
               </Button>
             </form>
-
-            <div className="mt-6 pt-4 border-t">
-              <div className="text-sm text-muted-foreground">
-                <p className="font-medium mb-2">Demo Credentials:</p>
-                <p>Admin: username: <code className="bg-muted px-1 rounded">admin</code>, password: <code className="bg-muted px-1 rounded">admin</code></p>
-              </div>
-            </div>
           </CardContent>
         </Card>
       </div>
