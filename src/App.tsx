@@ -65,6 +65,9 @@ function App() {
   const [viewingOccurrence, setViewingOccurrence] = useState<Occurrence | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedFactory, setSelectedFactory] = useState<Factory | 'ALL'>('ALL');
+  const [occurrenceDirty, setOccurrenceDirty] = useState(false); // track unsaved changes in occurrence form
+  const [pendingTab, setPendingTab] = useState<string | null>(null); // store intended tab while confirming
+  const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
 
   const factories: Factory[] = ['BTL', 'BTO', 'BTI', 'BTX', 'BTT', 'BTG'];
 
@@ -338,7 +341,17 @@ function App() {
       />
 
       <div className="container mx-auto px-6 py-6">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+        <Tabs value={activeTab} onValueChange={(val) => {
+          // If an occurrence form (new or edit) is open, always confirm before leaving
+          if (showOccurrenceForm || (editingItem && editingItem.type && typeof editingItem.reportedDate === 'string')) {
+            if (val !== activeTab) {
+              setPendingTab(val);
+              setShowUnsavedDialog(true);
+              return; // block immediate switch
+            }
+          }
+          setActiveTab(val);
+        }} className="space-y-4">
           <TabsList className="flex w-full flex-wrap gap-2">
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
             <TabsTrigger value="occurrences">Occurrences</TabsTrigger>
@@ -425,36 +438,40 @@ function App() {
           </TabsContent>
 
           <TabsContent value="occurrences" className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h2 className="text-xl font-semibold">Occurrence Management</h2>
-              <Button 
-                onClick={() => setShowOccurrenceForm(true)}
-                disabled={!canEdit && (!currentUser || currentUser.factories.length === 0)}
-              >
-                <span className="mr-2">+</span>
-                Report Occurrence
-              </Button>
-            </div>
-            <OccurrenceList 
-              occurrences={filteredOccurrences.filter(occurrence => 
-                searchTerm === '' || 
-                occurrence.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                occurrence.description.toLowerCase().includes(searchTerm.toLowerCase())
-              )}
-              onEdit={canEdit ? setEditingItem : undefined}
-              onDelete={canDelete ? handleDeleteOccurrence : undefined}
-              onView={(occ) => setViewingOccurrence(occ)}
-              getPriorityColor={(priority) => {
-                switch (priority) {
-                  case 'critical': return 'bg-destructive';
-                  case 'high': return 'bg-accent';
-                  case 'medium': return 'bg-yellow-500';
-                  case 'low': return 'bg-green-500';
-                  default: return 'bg-gray-500';
-                }
-              }}
-              getStatusColor={getStatusColor}
-            />
+            {!(showOccurrenceForm || (editingItem && editingItem.type && typeof editingItem.reportedDate === 'string') || viewingOccurrence) && (
+              <>
+                <div className="flex justify-between items-center">
+                  <h2 className="text-xl font-semibold">Occurrence Management</h2>
+                  <Button 
+                    onClick={() => setShowOccurrenceForm(true)}
+                    disabled={!canEdit && (!currentUser || currentUser.factories.length === 0)}
+                  >
+                    <span className="mr-2">+</span>
+                    Report Occurrence
+                  </Button>
+                </div>
+                <OccurrenceList 
+                  occurrences={filteredOccurrences.filter(occurrence => 
+                    searchTerm === '' || 
+                    occurrence.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    occurrence.description.toLowerCase().includes(searchTerm.toLowerCase())
+                  )}
+                  onEdit={canEdit ? setEditingItem : undefined}
+                  onDelete={canDelete ? handleDeleteOccurrence : undefined}
+                  onView={(occ) => setViewingOccurrence(occ)}
+                  getPriorityColor={(priority) => {
+                    switch (priority) {
+                      case 'critical': return 'bg-destructive';
+                      case 'high': return 'bg-accent';
+                      case 'medium': return 'bg-yellow-500';
+                      case 'low': return 'bg-green-500';
+                      default: return 'bg-gray-500';
+                    }
+                  }}
+                  getStatusColor={getStatusColor}
+                />
+              </>
+            )}
           </TabsContent>
 
           {/* Incidents tab removed: incidents are covered by occurrences */}
@@ -555,22 +572,24 @@ function App() {
         />
       )}
 
-      {showOccurrenceForm && (
+    {showOccurrenceForm && (
         <OccurrenceFormPage
           onSubmit={handleAddOccurrence}
           onCancel={() => setShowOccurrenceForm(false)}
           currentFactory={selectedFactory !== 'ALL' ? selectedFactory as Factory : 'BTT'}
           currentUser={currentUser}
+      onDirtyChange={setOccurrenceDirty}
         />
       )}
 
-      {editingItem && editingItem.type && typeof editingItem.reportedDate === 'string' && canEdit && (
+    {editingItem && editingItem.type && typeof editingItem.reportedDate === 'string' && canEdit && (
         <OccurrenceFormPage
           occurrence={editingItem}
           onSubmit={handleUpdateOccurrence}
           onCancel={() => setEditingItem(null)}
           currentFactory={selectedFactory !== 'ALL' ? selectedFactory as Factory : 'BTT'}
           currentUser={currentUser}
+      onDirtyChange={setOccurrenceDirty}
         />
       )}
 
@@ -583,6 +602,29 @@ function App() {
           currentUser={currentUser}
           readOnly
         />
+      )}
+
+      {/* Unsaved changes confirmation dialog */}
+      {showUnsavedDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-md shadow-lg max-w-sm w-full p-6 space-y-4">
+            <h2 className="text-lg font-semibold">Unsaved changes</h2>
+            <p className="text-sm text-muted-foreground">You have an occurrence with unsaved changes. If you leave, your changes will be lost.</p>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => { setShowUnsavedDialog(false); setPendingTab(null); }}>Stay</Button>
+              <Button className="bg-red-600 hover:bg-red-700" onClick={() => {
+                setShowUnsavedDialog(false);
+                setOccurrenceDirty(false);
+                setShowOccurrenceForm(false);
+                setEditingItem(null);
+                if (pendingTab) {
+                  setActiveTab(pendingTab);
+                  setPendingTab(null);
+                }
+              }}>Leave without saving</Button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

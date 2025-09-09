@@ -37,9 +37,10 @@ interface OccurrenceFormPageProps {
   currentFactory?: Factory;
   currentUser?: User;
   readOnly?: boolean;
+  onDirtyChange?: (dirty: boolean) => void; // Notify parent about unsaved change state
 }
 
-export function OccurrenceFormPage({ occurrence, onSubmit, onCancel, onDelete, currentFactory, currentUser, readOnly }: OccurrenceFormPageProps) {
+export function OccurrenceFormPage({ occurrence, onSubmit, onCancel, onDelete, currentFactory, currentUser, readOnly, onDirtyChange }: OccurrenceFormPageProps) {
   const isReadOnly = !!readOnly;
   // Get available factories based on user permissions
   const getAvailableFactories = (): Factory[] => {
@@ -97,8 +98,16 @@ export function OccurrenceFormPage({ occurrence, onSubmit, onCancel, onDelete, c
   const updateFormData = (updater: (prev: any) => any) => {
     if (isReadOnly) return;
     setFormData(updater);
-    setHasUnsavedChanges(true);
+    if (!hasUnsavedChanges) {
+      setHasUnsavedChanges(true);
+      onDirtyChange?.(true);
+    }
   };
+
+  // Reflect hasUnsavedChanges transitions to parent (covers non-updateFormData paths)
+  useEffect(() => {
+    onDirtyChange?.(hasUnsavedChanges);
+  }, [hasUnsavedChanges, onDirtyChange]);
 
   // Load factory-specific location hierarchy
   const locationHierarchy = useMemo(() => {
@@ -159,8 +168,9 @@ export function OccurrenceFormPage({ occurrence, onSubmit, onCancel, onDelete, c
       updatedAt: new Date().toISOString()
     };
     
-    onSubmit(newOccurrence);
-    setHasUnsavedChanges(false); // Reset unsaved changes flag after successful save
+  onSubmit(newOccurrence);
+  setHasUnsavedChanges(false); // Reset unsaved changes flag after successful save
+  onDirtyChange?.(false);
   };
 
   return (
