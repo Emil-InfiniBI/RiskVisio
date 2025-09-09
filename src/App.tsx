@@ -20,6 +20,7 @@ import { OccurrenceList } from '@/components/OccurrenceList';
 import { Dashboard } from '@/components/Dashboard';
 import { InvestigationForm } from '@/components/InvestigationForm';
 import AdminPage from '@/components/AdminPage';
+import HelpPage from '@/components/HelpPage';
 
 // Main Risk & Incident Management Application
 function App() {
@@ -384,6 +385,7 @@ function App() {
             {currentUser?.role === 'admin' && (
               <TabsTrigger value="admin">Admin</TabsTrigger>
             )}
+            <TabsTrigger value="help">Help</TabsTrigger>
           </TabsList>
 
           {activeTab === 'dashboard' && (
@@ -540,6 +542,10 @@ function App() {
               <AdminPage onBack={() => setActiveTab('dashboard')} />
             </TabsContent>
           )}
+
+          <TabsContent value="help">
+            <HelpPage />
+          </TabsContent>
         </Tabs>
       </div>
 

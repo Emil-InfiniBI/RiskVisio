@@ -53,7 +53,7 @@ export function OccurrenceFormPage({ occurrence, onSubmit, onCancel, onDelete, c
   const availableFactories = getAvailableFactories();
   const [formData, setFormData] = useState({
     title: occurrence?.title || '', // Manual field for occurrence title
-    type: occurrence?.type || 'risk-observation',
+    type: occurrence?.type || '',
     factory: occurrence?.factory || currentFactory || 'BTL',
     priority: occurrence?.priority || 'medium',
     status: occurrence?.status || 'reported',
@@ -134,6 +134,12 @@ export function OccurrenceFormPage({ occurrence, onSubmit, onCancel, onDelete, c
     e.preventDefault();
     if (isReadOnly) return;
     
+    // Validate that type is selected
+    if (!formData.type) {
+      alert('Please select an occurrence type from the "What?" dropdown.');
+      return;
+    }
+    
     // Validate user has access to the selected factory
     if (currentUser && currentUser.role !== 'admin') {
       if (!currentUser.factories.includes(formData.factory as Factory)) {
@@ -164,6 +170,7 @@ export function OccurrenceFormPage({ occurrence, onSubmit, onCancel, onDelete, c
     const newOccurrence: Occurrence = {
       id,
       ...formData,
+      type: formData.type as Occurrence['type'],
       createdAt: occurrence?.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
@@ -174,16 +181,16 @@ export function OccurrenceFormPage({ occurrence, onSubmit, onCancel, onDelete, c
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
+    <div className="min-h-screen bg-gray-50 p-2 sm:p-4">
       <div className="max-w-7xl mx-auto bg-white rounded-lg shadow-sm">
         {/* Header */}
-        <div className="border-b border-gray-200 p-4">
+        <div className="border-b border-gray-200 p-3 sm:p-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <h1 className="text-lg font-semibold text-gray-900">
+            <div className="flex items-center gap-2 sm:gap-4">
+              <h1 className="text-sm sm:text-lg font-semibold text-gray-900">
                 {formData.type === 'risk-observation' ? 'Risk observation' : 'Occurrence'}, F1, 17/09/2025, Registration in progress
               </h1>
-              <div className="flex gap-1">
+              <div className="hidden sm:flex gap-1">
                 <div className="w-2 h-2 bg-gray-400 rounded-sm"></div>
                 <div className="w-2 h-2 bg-gray-400 rounded-sm"></div>
                 <div className="w-2 h-2 bg-gray-400 rounded-sm"></div>
@@ -233,7 +240,7 @@ export function OccurrenceFormPage({ occurrence, onSubmit, onCancel, onDelete, c
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-4">
+        <form onSubmit={handleSubmit} className="p-3 sm:p-4">
           <fieldset disabled={isReadOnly}>
           {/* Top Section - Occurrence Type */}
           <div className="mb-4">
@@ -244,22 +251,25 @@ export function OccurrenceFormPage({ occurrence, onSubmit, onCancel, onDelete, c
               {isReadOnly && <span className="text-xs text-muted-foreground">Read-only</span>}
             </div>
             
-            <div className="flex items-center gap-4 mb-3">
-              <Label htmlFor="occurrenceManager" className="text-sm text-gray-600">Occurrence manager:</Label>
+            <div className="flex flex-col gap-3 mb-3 sm:flex-row sm:items-center sm:gap-4">
+              <Label htmlFor="occurrenceManager" className="text-sm text-gray-600 sm:min-w-[140px]">Occurrence manager:</Label>
               <div className="flex items-center gap-2 flex-1">
                 <Input
                   id="occurrenceManager"
                   value={formData.occurrenceManager}
                   onChange={(e) => updateFormData(prev => ({ ...prev, occurrenceManager: e.target.value }))}
                   placeholder="Enter occurrence manager name"
-                  className="max-w-xs h-8"
+                  className="flex-1 h-10 sm:w-64"
                 />
+                <Button type="button" variant="outline" size="sm" className="h-10 px-3">
+                  👤
+                </Button>
               </div>
-              <div className="flex items-center gap-2 ml-auto">
+              <div className="flex items-center gap-2">
                 <Checkbox 
                   id="restrictedAccess"
                   checked={formData.restrictedAccess}
-                  onCheckedChange={(checked) => setFormData(prev => ({ ...prev, restrictedAccess: checked as boolean }))}
+                  onCheckedChange={(checked) => updateFormData(prev => ({ ...prev, restrictedAccess: checked as boolean }))}
                 />
                 <Label htmlFor="restrictedAccess" className="text-sm">Restricted access</Label>
               </div>
@@ -271,16 +281,16 @@ export function OccurrenceFormPage({ occurrence, onSubmit, onCancel, onDelete, c
             <AccordionItem value="details">
               <AccordionTrigger className="text-base font-medium py-2">Occurrence details</AccordionTrigger>
               <AccordionContent className="pt-2">
-                <div className="grid grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                   <div className="space-y-1">
                     <Label htmlFor="reportedDate" className="text-sm font-medium">When?</Label>
                     <Input
                       id="reportedDate"
                       type="date"
                       value={formData.reportedDate}
-                      onChange={(e) => setFormData(prev => ({ ...prev, reportedDate: e.target.value }))}
+                      onChange={(e) => updateFormData(prev => ({ ...prev, reportedDate: e.target.value }))}
                       required
-                      className="w-full h-8"
+                      className="w-full h-10"
                     />
                   </div>
                   <div className="space-y-1">
@@ -289,9 +299,9 @@ export function OccurrenceFormPage({ occurrence, onSubmit, onCancel, onDelete, c
                       id="reportedTime"
                       type="time"
                       value={formData.reportedTime}
-                      onChange={(e) => setFormData(prev => ({ ...prev, reportedTime: e.target.value }))}
+                      onChange={(e) => updateFormData(prev => ({ ...prev, reportedTime: e.target.value }))}
                       required
-                      className="w-full h-8"
+                      className="w-full h-10"
                     />
                   </div>
                   <div className="space-y-1">
@@ -300,7 +310,7 @@ export function OccurrenceFormPage({ occurrence, onSubmit, onCancel, onDelete, c
                       <PopoverTrigger asChild>
                         <Button 
                           variant="outline" 
-                          className="w-full justify-start text-left font-normal h-8"
+                          className="w-full justify-start text-left font-normal h-10"
                         >
                           {formData.location || "Select location..."}
                         </Button>
@@ -312,7 +322,7 @@ export function OccurrenceFormPage({ occurrence, onSubmit, onCancel, onDelete, c
                           selectedLocation={selectedLocationId}
                           onLocationSelect={(locationId, fullPath) => {
                             setSelectedLocationId(locationId);
-                            setFormData(prev => ({ ...prev, location: fullPath }));
+                            updateFormData(prev => ({ ...prev, location: fullPath }));
                             setLocationPopoverOpen(false);
                           }}
                           mode="select"
@@ -322,9 +332,9 @@ export function OccurrenceFormPage({ occurrence, onSubmit, onCancel, onDelete, c
                   </div>
                   <div className="space-y-1">
                     <Label htmlFor="type" className="text-sm font-medium">What?</Label>
-                    <Select value={formData.type} onValueChange={(value) => setFormData(prev => ({ ...prev, type: value as Occurrence['type'] }))}>
-                      <SelectTrigger className="w-full h-8">
-                        <SelectValue placeholder="Select type" />
+                    <Select value={formData.type} onValueChange={(value) => updateFormData(prev => ({ ...prev, type: value as Occurrence['type'] }))}>
+                      <SelectTrigger className="w-full h-10">
+                        <SelectValue placeholder="Select..." />
                       </SelectTrigger>
                       <SelectContent>
                         {occurrenceTypes.map((type) => (
@@ -351,14 +361,14 @@ export function OccurrenceFormPage({ occurrence, onSubmit, onCancel, onDelete, c
                 </div>
               </AccordionTrigger>
               <AccordionContent className="pt-2">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="space-y-1">
                     <Label htmlFor="reportedByName" className="text-sm font-medium">Name</Label>
                     <Input
                       id="reportedByName"
                       value={formData.reportedByName}
                       readOnly
-                      className="w-full bg-gray-50 h-8"
+                      className="w-full bg-gray-50 h-10"
                       title="Auto-filled from current user"
                     />
                   </div>
@@ -370,10 +380,10 @@ export function OccurrenceFormPage({ occurrence, onSubmit, onCancel, onDelete, c
                         type="email"
                         value={formData.reportedByEmail}
                         readOnly
-                        className="flex-1 bg-gray-50 h-8"
+                        className="flex-1 bg-gray-50 h-10"
                         title="Auto-filled from current user"
                       />
-                      <Button type="button" variant="ghost" size="sm" className="text-gray-400 h-8 w-8 p-0">📧</Button>
+                      <Button type="button" variant="ghost" size="sm" className="text-gray-400 h-10 w-10 p-0">📧</Button>
                     </div>
                   </div>
                 </div>

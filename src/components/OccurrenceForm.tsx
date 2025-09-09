@@ -36,7 +36,7 @@ interface OccurrenceFormProps {
 export function OccurrenceForm({ occurrence, onSubmit, onClose, currentFactory }: OccurrenceFormProps) {
   const [formData, setFormData] = useState({
   title: occurrence?.title || '', // retained in state but not shown in UI per request
-  type: occurrence?.type || 'risk-observation',
+  type: occurrence?.type || '',
     factory: occurrence?.factory || currentFactory || 'BTL',
     priority: occurrence?.priority || 'medium',
   status: occurrence?.status || 'reported',
@@ -64,6 +64,12 @@ export function OccurrenceForm({ occurrence, onSubmit, onClose, currentFactory }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate that type is selected
+    if (!formData.type) {
+      alert('Please select an occurrence type from the "What?" dropdown.');
+      return;
+    }
     
     // Compute ID: keep when editing, otherwise generate YYYY-0001 based on occurrences in storage
     let id = occurrence?.id;
