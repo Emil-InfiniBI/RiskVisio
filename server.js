@@ -2,6 +2,7 @@ import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import sqlite3 from 'sqlite3';
+import { randomBytes, createHash } from 'crypto';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -11,6 +12,10 @@ const PORT = process.env.PORT || 8080;
 
 // Middleware
 app.use(express.json());
+
+// Environment fallback single API key (legacy) & optional admin key for key management endpoints
+const SINGLE_API_KEY = process.env.RISKVISIO_API_KEY;
+const ADMIN_KEY = process.env.RISKVISIO_ADMIN_KEY; // if set, required for create/revoke operations
 
 // Initialize SQLite database
 const dbPath = path.join(__dirname, 'data.db');
@@ -116,6 +121,80 @@ db.serialize(() => {
     createdDate TEXT,
     lastLogin TEXT
   )`);
+
+  // API Keys table (hashed secret stored)
+  db.run(`CREATE TABLE IF NOT EXISTS api_keys (
+    id TEXT PRIMARY KEY,
+    clientId TEXT UNIQUE,
+    secretHash TEXT,
+    name TEXT,
+    enabled INTEGER,
+    accessType TEXT,
+    createdDate TEXT,
+    createdBy TEXT,
+    lastUsed TEXT,
+    revokedDate TEXT,
+    revokedBy TEXT
+  )`);
+});
+
+// Helper utilities for API keys
+function generateRandomString(bytes = 16) {
+  return randomBytes(bytes).toString('base64url');
+}
+
+function hashSecret(secret) {
+  return createHash('sha256').update(secret).digest('hex');
+}
+
+// Dynamic API key auth middleware (read operations). Logic:
+// 1. If SINGLE_API_KEY env set -> accept that.
+// 2. Else if api_keys table has at least one enabled key -> require valid key present.
+// 3. If no keys exist yet -> allow (bootstrap state).
+// Access type enforcement: write routes (POST except /api/api-keys) require 'full' keys.
+app.use('/api', (req, res, next) => {
+  // Skip protection for key management endpoints writes if admin key configured & supplied
+  const isKeyManagement = req.path.startsWith('/api/api-keys');
+  if (SINGLE_API_KEY) {
+    if (!isKeyManagement) {
+      const provided = req.header('x-api-key') || req.query.api_key;
+      if (provided !== SINGLE_API_KEY) {
+        return res.status(401).json({ error: 'Unauthorized: invalid API key' });
+      }
+    }
+    return next();
+  }
+
+  db.get('SELECT COUNT(*) as cnt FROM api_keys WHERE enabled = 1 AND revokedDate IS NULL', (err, row) => {
+    if (err) return res.status(500).json({ error: 'Database error' });
+    const haveKeys = row?.cnt > 0;
+    if (!haveKeys) return next(); // bootstrap open access until first key created
+
+    // For key management modifications require admin key if configured
+    if (isKeyManagement && ['POST', 'DELETE'].includes(req.method) && ADMIN_KEY) {
+      const adminHeader = req.header('x-admin-key');
+      if (adminHeader !== ADMIN_KEY) {
+        return res.status(401).json({ error: 'Admin key required' });
+      }
+    }
+
+    const provided = req.header('x-api-key') || req.query.api_key;
+    if (!provided) return res.status(401).json({ error: 'API key required' });
+
+    db.get('SELECT * FROM api_keys WHERE clientId = ? AND enabled = 1 AND revokedDate IS NULL', [provided], (err2, keyRow) => {
+      if (err2) return res.status(500).json({ error: 'Database error' });
+      if (!keyRow) return res.status(401).json({ error: 'Invalid API key' });
+
+      // Enforce access level for write operations (except key management endpoints)
+      if (req.method === 'POST' && !isKeyManagement && keyRow.accessType !== 'full') {
+        return res.status(403).json({ error: 'Insufficient privileges (write requires full access key)' });
+      }
+
+      // Update lastUsed asynchronously
+      db.run('UPDATE api_keys SET lastUsed = ? WHERE id = ?', [new Date().toISOString(), keyRow.id], () => {});
+      next();
+    });
+  });
 });
 
 // Basic health check for Azure App Service
@@ -301,6 +380,45 @@ app.delete('/api/users/:id', (req, res) => {
   db.run('DELETE FROM users WHERE id = ?', [req.params.id], function(err) {
     if (err) return res.status(500).json({ error: 'Database error' });
     res.json({ deleted: this.changes });
+  });
+});
+
+// API Key management endpoints
+// List keys (never returns secret hash)
+app.get('/api/api-keys', (_req, res) => {
+  db.all('SELECT id, clientId, name, enabled, accessType, createdDate, createdBy, lastUsed, revokedDate, revokedBy FROM api_keys ORDER BY createdDate DESC', (err, rows) => {
+    if (err) return res.status(500).json({ error: 'Database error' });
+    res.json(rows);
+  });
+});
+
+// Create new key (returns clientSecret once)
+app.post('/api/api-keys', (req, res) => {
+  const { name, accessType = 'limited', createdBy = 'system' } = req.body || {};
+  if (!name || !['limited', 'full'].includes(accessType)) {
+    return res.status(400).json({ error: 'Invalid name or accessType' });
+  }
+  const id = Date.now().toString(36) + generateRandomString(6);
+  const clientId = 'key_' + generateRandomString(12);
+  const clientSecret = 'secret_' + generateRandomString(24);
+  const secretHash = hashSecret(clientSecret);
+  const createdDate = new Date().toISOString();
+  db.run(`INSERT INTO api_keys (id, clientId, secretHash, name, enabled, accessType, createdDate, createdBy) VALUES (?,?,?,?,?,?,?,?)`,
+    [id, clientId, secretHash, name, 1, accessType, createdDate, createdBy], function(err) {
+      if (err) return res.status(500).json({ error: 'Database error' });
+      res.json({ id, clientId, clientSecret, name, enabled: true, accessType, createdDate, createdBy });
+    });
+});
+
+// Revoke key
+app.post('/api/api-keys/:id/revoke', (req, res) => {
+  const { id } = req.params;
+  const revokedDate = new Date().toISOString();
+  const revokedBy = req.body?.revokedBy || 'system';
+  db.run('UPDATE api_keys SET enabled = 0, revokedDate = ?, revokedBy = ? WHERE id = ? AND revokedDate IS NULL', [revokedDate, revokedBy, id], function(err) {
+    if (err) return res.status(500).json({ error: 'Database error' });
+    if (this.changes === 0) return res.status(404).json({ error: 'Key not found or already revoked' });
+    res.json({ revoked: true, id, revokedDate, revokedBy });
   });
 });
 

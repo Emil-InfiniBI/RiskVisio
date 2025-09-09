@@ -23,19 +23,18 @@ export default function ApiKeyManagement({ currentUser }: ApiKeyManagementProps)
   const [newlyCreatedKey, setNewlyCreatedKey] = useState<ApiKey | null>(null);
   const [showSecretDialog, setShowSecretDialog] = useState(false);
 
-  // Load API keys from localStorage on component mount
-  useEffect(() => {
-    const storedKeys = localStorage.getItem('apiKeys');
-    if (storedKeys) {
-      setApiKeys(JSON.parse(storedKeys));
+  // Load API keys from backend
+  const loadKeys = async () => {
+    try {
+      const res = await fetch('/api/api-keys');
+      if (!res.ok) throw new Error('Failed');
+      const data = await res.json();
+      setApiKeys(Array.isArray(data) ? data : []);
+    } catch (_) {
+      // fallback: keep empty
     }
-  }, []);
-
-  // Save API keys to localStorage
-  const saveApiKeys = (keys: ApiKey[]) => {
-    localStorage.setItem('apiKeys', JSON.stringify(keys));
-    setApiKeys(keys);
   };
+  useEffect(() => { loadKeys(); }, []);
 
   // Generate a random string for client ID and secret
   const generateRandomString = (length: number): string => {
@@ -65,52 +64,34 @@ export default function ApiKeyManagement({ currentUser }: ApiKeyManagementProps)
       createdBy: currentUser,
     };
 
-    const updatedKeys = [...apiKeys, newKey];
-    saveApiKeys(updatedKeys);
-
-    // Show the secret dialog
-    setNewlyCreatedKey(newKey);
-    setShowSecretDialog(true);
-    setShowCreateDialog(false);
-    setNewKeyName('');
-    setNewKeyAccess('limited');
+    // Call backend
+    fetch('/api/api-keys', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: newKeyName.trim(), accessType: newKeyAccess, createdBy: currentUser }) })
+      .then(async r => {
+        if (!r.ok) throw new Error('create failed');
+        const created = await r.json();
+        setNewlyCreatedKey(created);
+        setShowSecretDialog(true);
+        setShowCreateDialog(false);
+        setNewKeyName('');
+        setNewKeyAccess('limited');
+        loadKeys();
+      })
+      .catch(()=>{});
   };
 
   // Revoke API key
   const revokeApiKey = (keyId: string) => {
-    const updatedKeys = apiKeys.map(key => {
-      if (key.id === keyId) {
-        return {
-          ...key,
-          enabled: false,
-          revokedDate: new Date().toISOString(),
-          revokedBy: currentUser,
-        };
-      }
-      return key;
-    });
-    saveApiKeys(updatedKeys);
+    fetch(`/api/api-keys/${keyId}/revoke`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ revokedBy: currentUser }) })
+      .then(()=> loadKeys())
+      .catch(()=>{});
   };
 
   // Toggle API key status
   const toggleApiKeyStatus = (keyId: string) => {
-    const updatedKeys = apiKeys.map(key => {
-      if (key.id === keyId) {
-        return {
-          ...key,
-          enabled: !key.enabled,
-          ...(key.enabled ? {
-            revokedDate: new Date().toISOString(),
-            revokedBy: currentUser,
-          } : {
-            revokedDate: undefined,
-            revokedBy: undefined,
-          }),
-        };
-      }
-      return key;
-    });
-    saveApiKeys(updatedKeys);
+    // Revoke or (future) re-enable; currently only revoke endpoint implemented
+    if (apiKeys.find(k => k.id === keyId)?.enabled) {
+      revokeApiKey(keyId);
+    }
   };
 
   // Copy to clipboard
