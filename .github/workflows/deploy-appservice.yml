@@ -1,0 +1,47 @@
+name: Deploy RiskVisio to Azure App Service
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Build (Vite + TypeScript)
+        run: npm run build
+
+      # (Optional) Run lint or tests here
+      # - run: npm run lint
+      # - run: npm test
+
+      - name: Deploy to Azure Web App
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: riskvisio-edamd3h0g9dccgw  # Actual App Service name
+          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE }}
+          package: .
+          # You can set slot-name: production if you add deployment slots later
+
+# Setup instructions:
+# 1. In Azure Portal > Your App Service > Overview > Get publish profile. Download.
+# 2. In GitHub repo: Settings > Secrets and variables > Actions > New secret.
+#    Name: AZUREAPPSERVICE_PUBLISHPROFILE  Value: (entire contents of the publish profile .PublishSettings file)
+# 3. Commit this workflow on main. Push. The action will build and deploy automatically.
+# 4. Future pushes to main trigger a redeploy.
