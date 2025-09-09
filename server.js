@@ -147,11 +147,20 @@ function hashSecret(secret) {
   return createHash('sha256').update(secret).digest('hex');
 }
 
-// Dynamic API key auth middleware (read operations). Logic:
-// 1. If SINGLE_API_KEY env set -> accept that.
-// 2. Else if api_keys table has at least one enabled key -> require valid key present.
-// 3. If no keys exist yet -> allow (bootstrap state).
-// Access type enforcement: write routes (POST except /api/api-keys) require 'full' keys.
+// Dynamic API key auth middleware.
+// Modes:
+// 1. SINGLE_API_KEY env set -> legacy single-key mode (client provides x-api-key header matching env var).
+// 2. Persistent keys mode -> once at least one enabled key exists in api_keys table, all requests (except bootstrap) must
+//    include BOTH a client id and client secret. The pair functions like username/password:
+//      Headers required: x-client-id, x-client-secret
+//      (Legacy compatibility: x-api-key still accepted for client id; query params client_id/client_secret also accepted.)
+// 3. Bootstrap (no keys yet) -> open access to allow first key creation.
+// Access control:
+//   - Write operations (POST) excluding key management endpoints require a key with accessType === 'full'.
+//   - Key management modifications (create/revoke) require ADMIN_KEY if set.
+// Notes:
+//   - Client secrets are hashed (sha256) in the database. We hash the provided secret and compare.
+//   - If a request supplies a client id but no secret once keys exist, we reject with 401 to enforce the new model.
 app.use('/api', (req, res, next) => {
   // Skip protection for key management endpoints writes if admin key configured & supplied
   const isKeyManagement = req.path.startsWith('/api/api-keys');
@@ -178,12 +187,22 @@ app.use('/api', (req, res, next) => {
       }
     }
 
-    const provided = req.header('x-api-key') || req.query.api_key;
-    if (!provided) return res.status(401).json({ error: 'API key required' });
+    const clientId = req.header('x-client-id') || req.header('x-api-key') || req.query.client_id || req.query.api_key;
+    const clientSecret = req.header('x-client-secret') || req.query.client_secret;
 
-    db.get('SELECT * FROM api_keys WHERE clientId = ? AND enabled = 1 AND revokedDate IS NULL', [provided], (err2, keyRow) => {
+    if (!clientId || !clientSecret) {
+      return res.status(401).json({ error: 'Client ID and Client Secret required' });
+    }
+
+    db.get('SELECT * FROM api_keys WHERE clientId = ? AND enabled = 1 AND revokedDate IS NULL', [clientId], (err2, keyRow) => {
       if (err2) return res.status(500).json({ error: 'Database error' });
       if (!keyRow) return res.status(401).json({ error: 'Invalid API key' });
+
+      // Verify secret
+      const providedHash = hashSecret(clientSecret);
+      if (providedHash !== keyRow.secretHash) {
+        return res.status(401).json({ error: 'Invalid client secret' });
+      }
 
       // Enforce access level for write operations (except key management endpoints)
       if (req.method === 'POST' && !isKeyManagement && keyRow.accessType !== 'full') {
@@ -191,7 +210,7 @@ app.use('/api', (req, res, next) => {
       }
 
       // Update lastUsed asynchronously
-      db.run('UPDATE api_keys SET lastUsed = ? WHERE id = ?', [new Date().toISOString(), keyRow.id], () => {});
+  db.run('UPDATE api_keys SET lastUsed = ? WHERE id = ?', [new Date().toISOString(), keyRow.id], () => {});
       next();
     });
   });

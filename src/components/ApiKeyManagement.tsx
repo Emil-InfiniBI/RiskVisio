@@ -179,8 +179,9 @@ export default function ApiKeyManagement({ currentUser }: ApiKeyManagementProps)
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="text-sm text-muted-foreground mb-4">
-              All created API keys are shown in the list below. Note that the Client Secret will not appear again after you generate an API key.
+            <div className="text-sm text-muted-foreground mb-4 space-y-2">
+              <p>All created API keys are shown in the list below. The Client Secret will not appear again after you generate an API key.</p>
+              <p>To call the API you must now send BOTH headers: <code className="bg-muted px-1 py-0.5 rounded">x-client-id</code> and <code className="bg-muted px-1 py-0.5 rounded">x-client-secret</code>. (Legacy <code className="bg-muted px-1 py-0.5 rounded">x-api-key</code> alone is no longer sufficient once a secret is enforced.)</p>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full border-collapse">
