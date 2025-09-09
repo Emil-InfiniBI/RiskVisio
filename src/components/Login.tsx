@@ -135,21 +135,6 @@ export function Login({ users, onLogin }: LoginProps) {
                 {isLoading ? 'Signing in...' : 'Sign In'}
               </Button>
             </form>
-
-            {/* Demo credentials info */}
-            <div className="mt-6 pt-4 border-t border-border">
-              <div className="text-sm text-muted-foreground">
-                <p className="font-medium mb-2">Demo Credentials:</p>
-                <div className="space-y-1 text-xs">
-                  <div><strong>Admin:</strong> admin / admin</div>
-                  <div><strong>Manager:</strong> manager_btl / demo123</div>
-                  <div><strong>User:</strong> user_btg / demo123</div>
-                </div>
-                <p className="mt-2 text-xs text-muted-foreground">
-                  If login fails, the system may still be starting up. Please wait a moment and try again.
-                </p>
-              </div>
-            </div>
           </CardContent>
         </Card>
       </div>
