@@ -258,6 +258,70 @@ app.get('/api/investigations', (req, res) => {
   });
 });
 
+// Database viewer endpoint - shows all tables and their data
+app.get('/api/database', (req, res) => {
+  const tables = ['occurrences', 'incidents', 'risks', 'compliance', 'investigations'];
+  const result = {};
+  let completed = 0;
+  
+  tables.forEach(tableName => {
+    db.all(`SELECT * FROM ${tableName} ORDER BY createdAt DESC`, (err, rows) => {
+      if (err) {
+        result[tableName] = { error: err.message };
+      } else {
+        result[tableName] = {
+          count: rows.length,
+          data: rows.map(row => ({
+            ...row,
+            data: row.data ? JSON.parse(row.data) : {}
+          }))
+        };
+      }
+      
+      completed++;
+      if (completed === tables.length) {
+        res.json({
+          database: 'SQLite',
+          location: '/home/site/wwwroot/data.db',
+          tables: result,
+          timestamp: new Date().toISOString()
+        });
+      }
+    });
+  });
+});
+
+// Database schema endpoint - shows table structures
+app.get('/api/database/schema', (req, res) => {
+  db.all("SELECT name FROM sqlite_master WHERE type='table'", (err, tables) => {
+    if (err) {
+      return res.status(500).json({ error: err.message });
+    }
+    
+    const schema = {};
+    let completed = 0;
+    
+    tables.forEach(table => {
+      db.all(`PRAGMA table_info(${table.name})`, (err, columns) => {
+        if (err) {
+          schema[table.name] = { error: err.message };
+        } else {
+          schema[table.name] = columns;
+        }
+        
+        completed++;
+        if (completed === tables.length) {
+          res.json({
+            database: 'SQLite',
+            tables: schema,
+            timestamp: new Date().toISOString()
+          });
+        }
+      });
+    });
+  });
+});
+
 // Serve static assets from Vite build output
 const distPath = path.join(__dirname, 'dist');
 app.use(express.static(distPath));
