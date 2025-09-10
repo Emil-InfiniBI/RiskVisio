@@ -57,12 +57,12 @@ export function OccurrenceFormPage({ occurrence, onSubmit, onCancel, onDelete, c
     factory: occurrence?.factory || currentFactory || 'BTL',
     priority: occurrence?.priority || 'medium',
     status: occurrence?.status || 'reported',
-    reportedDate: occurrence?.reportedDate || new Date().toISOString().split('T')[0],
-    reportedTime: occurrence?.reportedTime || new Date().toTimeString().slice(0,5),
+    reportedDate: occurrence?.reportedDate || (occurrence ? '' : new Date().toISOString().split('T')[0]),
+    reportedTime: occurrence?.reportedTime || (occurrence ? '' : new Date().toTimeString().slice(0,5)),
     reportedBy: occurrence?.reportedBy || '',
-    reportedByName: occurrence?.reportedByName || currentUser?.fullName || 'Emil Dybeck', // Auto-filled from current user
-    reportedByEmail: occurrence?.reportedByEmail || currentUser?.email || 'emil.dybeck@baettr.com', // Auto-filled from current user
-    description: occurrence?.description || 'Risk observation details automatically populated based on occurrence type and location', // Auto-filled description
+    reportedByName: occurrence?.reportedByName || (occurrence ? '' : currentUser?.fullName || 'Emil Dybeck'), // Auto-filled only for new occurrences
+    reportedByEmail: occurrence?.reportedByEmail || (occurrence ? '' : currentUser?.email || 'emil.dybeck@baettr.com'), // Auto-filled only for new occurrences
+    description: occurrence?.description || (occurrence ? '' : 'Risk observation details automatically populated based on occurrence type and location'), // Auto-filled only for new occurrences
     location: occurrence?.location || '',
     involvedPersons: occurrence?.involvedPersons || [],
     correctiveActions: occurrence?.correctiveActions || [],
@@ -362,9 +362,9 @@ export function OccurrenceFormPage({ occurrence, onSubmit, onCancel, onDelete, c
             <AccordionItem value="reported-by">
               <AccordionTrigger className="text-base font-medium py-2">
                 <div className="flex items-center gap-2">
-                  Reported by (Auto-filled)
+                  Reported by {occurrence ? '' : '(Auto-filled)'}
                   <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">Employee</span>
-                  <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">Auto</span>
+                  {!occurrence && <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">Auto</span>}
                 </div>
               </AccordionTrigger>
               <AccordionContent className="pt-2">
@@ -376,7 +376,7 @@ export function OccurrenceFormPage({ occurrence, onSubmit, onCancel, onDelete, c
                       value={formData.reportedByName}
                       readOnly
                       className="w-full bg-gray-50 h-10"
-                      title="Auto-filled from current user"
+                      title={occurrence ? "Reported by" : "Auto-filled from current user"}
                     />
                   </div>
                   <div className="space-y-1">
@@ -388,7 +388,7 @@ export function OccurrenceFormPage({ occurrence, onSubmit, onCancel, onDelete, c
                         value={formData.reportedByEmail}
                         readOnly
                         className="flex-1 bg-gray-50 h-10"
-                        title="Auto-filled from current user"
+                        title={occurrence ? "Reported by email" : "Auto-filled from current user"}
                       />
                       <Button type="button" variant="ghost" size="sm" className="text-gray-400 h-10 w-10 p-0">📧</Button>
                     </div>
