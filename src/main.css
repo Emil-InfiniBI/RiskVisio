@@ -26,6 +26,38 @@
   color utility to any element that depends on these defaults.
 */
 @layer base {
+  /* Prevent page shifting when scrollbars appear/disappear */
+  html {
+    overflow-y: scroll;
+    scrollbar-gutter: stable;
+    /* Fallback for browsers that don't support scrollbar-gutter */
+    margin-right: calc(-1 * (100vw - 100%));
+  }
+
+  body {
+    overflow-x: hidden;
+    /* Ensure body takes full width accounting for scrollbar */
+    width: 100vw;
+    max-width: 100%;
+  }
+
+  /* Force scrollbar to always be visible */
+  ::-webkit-scrollbar {
+    width: 16px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.3);
+  }
 
   *,
   ::after,

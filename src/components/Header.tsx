@@ -35,24 +35,28 @@ export function Header({
         {/* Top row */}
         <div className="flex items-start md:items-center justify-between gap-4 flex-wrap">
           <div className="flex items-start sm:items-center gap-3 flex-1 min-w-[220px]">
-            <span className="text-2xl sm:text-3xl">🛡️</span>
+            <img 
+              src="/assets/riskvisio-logo.png" 
+              alt="RiskVisio Logo" 
+              className="h-12 sm:h-16 w-auto max-w-[200px]"
+              onError={(e) => {
+                // Fallback to shield emoji if image fails to load
+                const target = e.target as HTMLImageElement;
+                target.style.display = 'none';
+                target.parentElement?.insertAdjacentHTML('afterbegin', '<span class="text-2xl sm:text-3xl">🛡️</span>');
+              }}
+            />
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="text-xl sm:text-2xl font-bold text-foreground leading-tight truncate max-w-[180px] sm:max-w-none">
-                  RiskVisio
-                  {selectedFactory !== 'ALL' && (
-                    <span className="hidden sm:inline text-lg font-medium text-muted-foreground ml-2">
-                      - {selectedFactory}
-                    </span>
-                  )}
-                </h1>
+                {selectedFactory !== 'ALL' && (
+                  <h2 className="text-lg sm:text-xl font-medium text-muted-foreground">
+                    {selectedFactory}
+                  </h2>
+                )}
                 <Badge variant="destructive" className="bg-orange-500 hover:bg-orange-600 text-white font-bold px-2 sm:px-3 py-0.5 text-xs sm:text-sm">
                   DEMO
                 </Badge>
               </div>
-              <p className="hidden sm:block text-sm text-muted-foreground">
-                Unified Risk • Incident • Near Miss Platform {selectedFactory === 'ALL' ? ' - All Factories' : ` - ${selectedFactory}`}
-              </p>
             </div>
             {/* Mobile menu button */}
             <Button

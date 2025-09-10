@@ -2,7 +2,7 @@
     "name": "riskvisio",
     "private": false,
     "version": "1.0.0",
-    "description": "RiskVisio – Unified Risk, Incident & Near Miss Management Platform",
+    "description": "RiskVisio – Risk, Incident & Near Miss Management Platform",
     "author": "Emil Dybeck",
     "license": "MIT",
     "type": "module",

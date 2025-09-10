@@ -181,8 +181,8 @@ export function OccurrenceFormPage({ occurrence, onSubmit, onCancel, onDelete, c
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-2 sm:p-4">
-      <div className="max-w-7xl mx-auto bg-white rounded-lg shadow-sm">
+    <div className="min-h-screen bg-gray-50 p-2 sm:p-4 overflow-x-hidden" style={{ width: '100vw', maxWidth: '100%' }}>
+      <div className="max-w-7xl mx-auto bg-white rounded-lg shadow-sm overflow-hidden" style={{ position: 'relative' }}>
         {/* Header */}
         <div className="border-b border-gray-200 p-3 sm:p-4">
           <div className="flex items-center justify-between">
@@ -240,7 +240,7 @@ export function OccurrenceFormPage({ occurrence, onSubmit, onCancel, onDelete, c
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-3 sm:p-4">
+        <form onSubmit={handleSubmit} className="p-3 sm:p-4 overflow-x-hidden">
           <fieldset disabled={isReadOnly}>
           {/* Top Section - Occurrence Type */}
           <div className="mb-4">
@@ -322,7 +322,9 @@ export function OccurrenceFormPage({ occurrence, onSubmit, onCancel, onDelete, c
                           selectedLocation={selectedLocationId}
                           onLocationSelect={(locationId, fullPath) => {
                             setSelectedLocationId(locationId);
-                            updateFormData(prev => ({ ...prev, location: fullPath }));
+                            // Extract only the last part of the path (leaf node name)
+                            const leafNodeName = fullPath.split(' > ').pop() || fullPath;
+                            updateFormData(prev => ({ ...prev, location: leafNodeName }));
                             setLocationPopoverOpen(false);
                           }}
                           mode="select"
@@ -336,7 +338,12 @@ export function OccurrenceFormPage({ occurrence, onSubmit, onCancel, onDelete, c
                       <SelectTrigger className="w-full h-10">
                         <SelectValue placeholder="Select..." />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent 
+                        className="z-50" 
+                        position="popper"
+                        sideOffset={4}
+                        avoidCollisions={true}
+                      >
                         {occurrenceTypes.map((type) => (
                           <SelectItem key={type.value} value={type.value}>
                             {type.label}
@@ -418,8 +425,14 @@ export function OccurrenceFormPage({ occurrence, onSubmit, onCancel, onDelete, c
                     <Textarea
                       value={formData.courseOfEvents}
                       onChange={(e) => updateFormData(prev => ({ ...prev, courseOfEvents: e.target.value }))}
-                      className="w-full mt-1 min-h-[80px]"
+                      className="w-full mt-1 min-h-[80px] resize-none"
                       placeholder="Describe the course of events..."
+                      style={{ 
+                        whiteSpace: 'pre-wrap', 
+                        overflowWrap: 'break-word',
+                        wordBreak: 'break-word',
+                        overflowX: 'hidden'
+                      }}
                     />
                   </div>
 
@@ -428,7 +441,13 @@ export function OccurrenceFormPage({ occurrence, onSubmit, onCancel, onDelete, c
                     <Textarea
                       value={formData.involvedOpinion}
                       onChange={(e) => updateFormData(prev => ({ ...prev, involvedOpinion: e.target.value }))}
-                      className="w-full mt-1 min-h-[80px]"
+                      className="w-full mt-1 min-h-[80px] resize-none"
+                      style={{ 
+                        whiteSpace: 'pre-wrap', 
+                        overflowWrap: 'break-word',
+                        wordBreak: 'break-word',
+                        overflowX: 'hidden'
+                      }}
                     />
                   </div>
 
@@ -437,7 +456,13 @@ export function OccurrenceFormPage({ occurrence, onSubmit, onCancel, onDelete, c
                     <Textarea
                       value={formData.involvedProposal}
                       onChange={(e) => updateFormData(prev => ({ ...prev, involvedProposal: e.target.value }))}
-                      className="w-full mt-1 min-h-[80px]"
+                      className="w-full mt-1 min-h-[80px] resize-none"
+                      style={{ 
+                        whiteSpace: 'pre-wrap', 
+                        overflowWrap: 'break-word',
+                        wordBreak: 'break-word',
+                        overflowX: 'hidden'
+                      }}
                     />
                   </div>
 

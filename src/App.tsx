@@ -443,7 +443,12 @@ function App() {
   }).length;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background" style={{ 
+      width: '100vw', 
+      maxWidth: '100%', 
+      overflowX: 'hidden',
+      position: 'relative'
+    }}>
       <Header
         currentUser={currentUser}
         selectedFactory={selectedFactory}
