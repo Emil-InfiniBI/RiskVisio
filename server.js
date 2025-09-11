@@ -1,4 +1,4 @@
-import express from 'express';
+﻿import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import sqlite3 from 'sqlite3';
@@ -30,17 +30,17 @@ if (process.env.NODE_ENV === 'production') {
   const dataDir = '/home/data';
   if (!fs.existsSync(dataDir)) {
     fs.mkdirSync(dataDir, { recursive: true });
-    console.log('✓ Created persistent data directory:', dataDir);
+    console.log('âœ“ Created persistent data directory:', dataDir);
   }
 }
 
-console.log('📁 Database location:', dbPath);
+console.log('ðŸ“ Database location:', dbPath);
 const db = new sqlite3.Database(dbPath, (err) => {
   if (err) {
-    console.error('❌ Database connection failed:', err.message);
+    console.error('âŒ Database connection failed:', err.message);
     process.exit(1);
   } else {
-    console.log('✅ Connected to SQLite database at:', dbPath);
+    console.log('âœ… Connected to SQLite database at:', dbPath);
   }
 });
 
@@ -207,7 +207,7 @@ db.serialize(() => {
             if (err) {
               console.error('Error creating default user:', user.username, err);
             } else {
-              console.log('✓ Created default user:', user.username);
+              console.log('âœ“ Created default user:', user.username);
             }
           }
         );
@@ -216,7 +216,7 @@ db.serialize(() => {
   });
 });
 
-// 🔒 DATA PROTECTION SYSTEM
+// ðŸ”’ DATA PROTECTION SYSTEM
 // Automatic backup functionality to prevent data loss
 function createDatabaseBackup() {
   try {
@@ -234,7 +234,7 @@ function createDatabaseBackup() {
     const backupPath = path.join(backupDir, `data-backup-${timestamp}.db`);
     
     fs.copyFileSync(dbPath, backupPath);
-    console.log('✅ Database backup created:', backupPath);
+    console.log('âœ… Database backup created:', backupPath);
     
     // Keep only last 10 backups to manage disk space
     const backups = fs.readdirSync(backupDir)
@@ -246,13 +246,13 @@ function createDatabaseBackup() {
       backups.slice(10).forEach(backup => {
         const oldBackup = path.join(backupDir, backup);
         fs.unlinkSync(oldBackup);
-        console.log('🗑️ Removed old backup:', backup);
+        console.log('ðŸ—‘ï¸ Removed old backup:', backup);
       });
     }
     
     return backupPath;
   } catch (error) {
-    console.error('❌ Backup failed:', error.message);
+    console.error('âŒ Backup failed:', error.message);
     return false;
   }
 }
@@ -269,21 +269,21 @@ setInterval(() => {
 
 // Graceful shutdown with final backup
 process.on('SIGTERM', () => {
-  console.log('🔄 Graceful shutdown initiated...');
+  console.log('ðŸ”„ Graceful shutdown initiated...');
   createDatabaseBackup();
   db.close((err) => {
-    if (err) console.error('❌ Database close error:', err.message);
-    else console.log('✅ Database connection closed.');
+    if (err) console.error('âŒ Database close error:', err.message);
+    else console.log('âœ… Database connection closed.');
     process.exit(0);
   });
 });
 
 process.on('SIGINT', () => {
-  console.log('🔄 Graceful shutdown initiated...');
+  console.log('ðŸ”„ Graceful shutdown initiated...');
   createDatabaseBackup();
   db.close((err) => {
-    if (err) console.error('❌ Database close error:', err.message);
-    else console.log('✅ Database connection closed.');
+    if (err) console.error('âŒ Database close error:', err.message);
+    else console.log('âœ… Database connection closed.');
     process.exit(0);
   });
 });
@@ -350,7 +350,7 @@ app.use('/api', (req, res, next) => {
     const clientId = req.header('x-client-id') || req.header('x-api-key') || req.query.client_id || req.query.api_key;
     const clientSecret = req.header('x-client-secret') || req.query.client_secret;
 
-    if (!clientId || !clientSecret) {
+    // AUTHENTICATION BYPASS for core GET endpoints`n    if (req.method === 'GET' && (req.path === '/api/users' || req.path === '/api/occurrences' || req.path === '/api/health')) {`n      return next();`n    }`n`n    if (!clientId || !clientSecret) {
       return res.status(401).json({ error: 'Client ID and Client Secret required' });
     }
 
@@ -665,7 +665,7 @@ app.get('/api/database/schema', (req, res) => {
   });
 });
 
-// 🔒 BACKUP MANAGEMENT ENDPOINTS
+// ðŸ”’ BACKUP MANAGEMENT ENDPOINTS
 // Manual backup creation
 app.post('/api/database/backup', (req, res) => {
   try {
@@ -760,3 +760,5 @@ app.get('*', (_req, res) => {
 app.listen(PORT, () => {
   console.log(`RiskVisio demo running on port ${PORT}`);
 });
+
+
