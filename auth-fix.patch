@@ -1,0 +1,97 @@
+--- server.js.original	2025-09-11 13:00:00.000000000 +0000
++++ server.js.fixed	2025-09-11 13:30:00.000000000 +0000
+@@ -320,7 +320,7 @@
+ //   - If a request supplies a client id but no secret once keys exist, we reject with 401 to enforce the new model.
+ app.use('/api', (req, res, next) => {
+   // Skip protection for key management endpoints writes if admin key configured & supplied
+-  const isKeyManagement = req.path.startsWith('/api/api-keys');
++  const isKeyManagement = req.path.includes('/api-keys');
+   if (SINGLE_API_KEY) {
+     if (!isKeyManagement) {
+       const provided = req.header('x-api-key') || req.query.api_key;
+@@ -332,6 +332,11 @@
+   }
+ 
+   db.get('SELECT COUNT(*) as cnt FROM api_keys WHERE enabled = 1 AND revokedDate IS NULL', (err, row) => {
++    if (err) {
++      console.error('Database error in auth middleware:', err);
++      return res.status(500).json({ error: 'Database authentication error' });
++    }
++    
+     const haveKeys = row?.cnt > 0;
+     if (!haveKeys) return next(); // bootstrap open access until first key created
+ 
+@@ -339,7 +344,10 @@
+     if (isKeyManagement && ['POST', 'DELETE'].includes(req.method) && ADMIN_KEY) {
+       const adminHeader = req.header('x-admin-key');
+       if (adminHeader !== ADMIN_KEY) {
+-        return res.status(401).json({ error: 'Admin key required' });
++        return res.status(401).json({ 
++          error: 'Admin key required',
++          hint: 'Provide x-admin-key header for key management operations'
++        });
+       }
+     }
+ 
+@@ -347,7 +355,11 @@
+     const clientSecret = req.header('x-client-secret') || req.query.client_secret;
+ 
+     if (!clientId || !clientSecret) {
+-      return res.status(401).json({ error: 'Client ID and Client Secret required' });
++      return res.status(401).json({ 
++        error: 'Client ID and Client Secret required',
++        hint: 'Provide both x-client-id and x-client-secret headers',
++        authMode: 'dual-credential'
++      });
+     }
+ 
+     db.get('SELECT * FROM api_keys WHERE clientId = ? AND enabled = 1 AND revokedDate IS NULL', [clientId], (err2, keyRow) => {
+@@ -357,12 +369,18 @@
+       // Verify secret
+       const providedHash = hashSecret(clientSecret);
+       if (providedHash !== keyRow.secretHash) {
+-        return res.status(401).json({ error: 'Invalid client secret' });
++        return res.status(401).json({ 
++          error: 'Invalid client secret',
++          hint: 'The provided client secret does not match'
++        });
+       }
+ 
+       // Enforce access level for write operations (except key management endpoints)
+       if (req.method === 'POST' && !isKeyManagement && keyRow.accessType !== 'full') {
+-        return res.status(403).json({ error: 'Insufficient privileges (write requires full access key)' });
++        return res.status(403).json({ 
++          error: 'Insufficient privileges',
++          hint: 'Write operations require full access key'
++        });
+       }
+ 
+       // Update lastUsed asynchronously
+@@ -572,6 +590,12 @@
+ // Create new key (returns clientSecret once)
+ app.post('/api/api-keys', (req, res) => {
+   const { name, accessType = 'limited', createdBy = 'system' } = req.body || {};
++  
++  // Validate input
++  if (!name || typeof name !== 'string' || name.trim().length === 0) {
++    return res.status(400).json({ error: 'Valid name is required' });
++  }
++  
+   if (!name || !['limited', 'full'].includes(accessType)) {
+     return res.status(400).json({ error: 'Invalid name or accessType' });
+   }
+@@ -583,7 +607,12 @@
+   const createdDate = new Date().toISOString();
+   db.run(`INSERT INTO api_keys (id, clientId, secretHash, name, enabled, accessType, createdDate, createdBy) VALUES (?,?,?,?,?,?,?,?)`,
+     [id, clientId, secretHash, name, 1, accessType, createdDate, createdBy], function(err) {
+-      if (err) return res.status(500).json({ error: 'Database error' });
++      if (err) {
++        console.error('Error creating API key:', err);
++        return res.status(500).json({ 
++          error: 'Failed to create API key',
++          message: err.message 
++        });
++      }
+       res.json({ id, clientId, clientSecret, name, enabled: true, accessType, createdDate, createdBy });
+     });
+ });

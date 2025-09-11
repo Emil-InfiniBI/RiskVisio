@@ -68,7 +68,7 @@ export default function ApiSync({ currentUser }: ApiSyncProps) {
 
   const testApiConnection = async () => {
     try {
-      const response = await fetch('http://localhost:3001/health');
+      const response = await fetch('/health');
       const data = await response.json();
       
       if (response.ok) {
@@ -80,7 +80,7 @@ export default function ApiSync({ currentUser }: ApiSyncProps) {
       }
     } catch (error) {
       setSyncStatus('error');
-      setSyncMessage('Cannot connect to API server. Make sure it\'s running on port 3001.');
+      setSyncMessage('Cannot connect to API server. Make sure the server is running.');
     }
   };
 

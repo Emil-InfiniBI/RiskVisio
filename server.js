@@ -30,17 +30,17 @@ if (process.env.NODE_ENV === 'production') {
   const dataDir = '/home/data';
   if (!fs.existsSync(dataDir)) {
     fs.mkdirSync(dataDir, { recursive: true });
-    console.log('âœ“ Created persistent data directory:', dataDir);
+    console.log('✓ Created persistent data directory:', dataDir);
   }
 }
 
-console.log('ðŸ“ Database location:', dbPath);
+console.log('📁 Database location:', dbPath);
 const db = new sqlite3.Database(dbPath, (err) => {
   if (err) {
-    console.error('âŒ Database connection failed:', err.message);
+    console.error('❌ Database connection failed:', err.message);
     process.exit(1);
   } else {
-    console.log('âœ… Connected to SQLite database at:', dbPath);
+    console.log('✅ Connected to SQLite database at:', dbPath);
   }
 });
 
@@ -207,7 +207,7 @@ db.serialize(() => {
             if (err) {
               console.error('Error creating default user:', user.username, err);
             } else {
-              console.log('âœ“ Created default user:', user.username);
+              console.log('✓ Created default user:', user.username);
             }
           }
         );
@@ -216,7 +216,7 @@ db.serialize(() => {
   });
 });
 
-// ðŸ”’ DATA PROTECTION SYSTEM
+// 🔒 DATA PROTECTION SYSTEM
 // Automatic backup functionality to prevent data loss
 function createDatabaseBackup() {
   try {
@@ -234,7 +234,7 @@ function createDatabaseBackup() {
     const backupPath = path.join(backupDir, `data-backup-${timestamp}.db`);
     
     fs.copyFileSync(dbPath, backupPath);
-    console.log('âœ… Database backup created:', backupPath);
+    console.log('✅ Database backup created:', backupPath);
     
     // Keep only last 10 backups to manage disk space
     const backups = fs.readdirSync(backupDir)
@@ -246,13 +246,13 @@ function createDatabaseBackup() {
       backups.slice(10).forEach(backup => {
         const oldBackup = path.join(backupDir, backup);
         fs.unlinkSync(oldBackup);
-        console.log('ðŸ—‘ï¸ Removed old backup:', backup);
+        console.log('🗑️ Removed old backup:', backup);
       });
     }
     
     return backupPath;
   } catch (error) {
-    console.error('âŒ Backup failed:', error.message);
+    console.error('❌ Backup failed:', error.message);
     return false;
   }
 }
@@ -269,21 +269,21 @@ setInterval(() => {
 
 // Graceful shutdown with final backup
 process.on('SIGTERM', () => {
-  console.log('ðŸ”„ Graceful shutdown initiated...');
+  console.log('🔄 Graceful shutdown initiated...');
   createDatabaseBackup();
   db.close((err) => {
-    if (err) console.error('âŒ Database close error:', err.message);
-    else console.log('âœ… Database connection closed.');
+    if (err) console.error('❌ Database close error:', err.message);
+    else console.log('✅ Database connection closed.');
     process.exit(0);
   });
 });
 
 process.on('SIGINT', () => {
-  console.log('ðŸ”„ Graceful shutdown initiated...');
+  console.log('🔄 Graceful shutdown initiated...');
   createDatabaseBackup();
   db.close((err) => {
-    if (err) console.error('âŒ Database close error:', err.message);
-    else console.log('âœ… Database connection closed.');
+    if (err) console.error('❌ Database close error:', err.message);
+    else console.log('✅ Database connection closed.');
     process.exit(0);
   });
 });
@@ -349,11 +349,6 @@ app.use('/api', (req, res, next) => {
 
     const clientId = req.header('x-client-id') || req.header('x-api-key') || req.query.client_id || req.query.api_key;
     const clientSecret = req.header('x-client-secret') || req.query.client_secret;
-
-    // AUTHENTICATION BYPASS for core GET endpoints
-    if (req.method === 'GET' && (req.path === '/api/users' || req.path === '/api/occurrences' || req.path === '/api/health' || req.path === '/api/api-keys')) {
-      return next();
-    }
 
     if (!clientId || !clientSecret) {
       return res.status(401).json({ error: 'Client ID and Client Secret required' });
@@ -510,6 +505,28 @@ app.get('/api/compliance', (req, res) => {
   });
 });
 
+app.post('/api/compliance', (req, res) => {
+  const compliance = req.body;
+  const id = compliance.id || Date.now().toString();
+  const now = new Date().toISOString();
+  
+  db.run(
+    `INSERT OR REPLACE INTO compliance 
+     (id, title, description, regulation, status, factory, dueDate, completedDate, assignedTo, createdAt, updatedAt, data)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [id, compliance.title, compliance.description, compliance.regulation, compliance.status, 
+     compliance.factory, compliance.dueDate, compliance.completedDate, compliance.assignedTo, 
+     compliance.createdAt || now, now, JSON.stringify(compliance.data || {})],
+    function(err) {
+      if (err) {
+        console.error('Database error:', err);
+        return res.status(500).json({ error: 'Database error' });
+      }
+      res.json({ id, ...compliance, createdAt: compliance.createdAt || now, updatedAt: now });
+    }
+  );
+});
+
 app.get('/api/investigations', (req, res) => {
   const { factory } = req.query;
   let query = 'SELECT * FROM investigations ORDER BY createdAt DESC';
@@ -606,64 +623,124 @@ app.post('/api/api-keys/:id/revoke', (req, res) => {
   });
 });
 
-
-// Sync data from frontend localStorage to database
+// 🔄 DATA SYNC ENDPOINT - for frontend auto-sync functionality
 app.post('/api/sync', (req, res) => {
   const { type, data } = req.body;
   
-  if (!type || !Array.isArray(data)) {
-    return res.status(400).json({ error: 'Type and data array required' });
+  // Validate input
+  if (!type || !data) {
+    return res.status(400).json({ 
+      error: 'Missing required fields',
+      hint: 'Provide both type and data fields'
+    });
   }
 
-  // Validate type
-  const validTypes = ['occurrences', 'incidents', 'risks', 'compliance'];
-  if (!validTypes.includes(type)) {
-    return res.status(400).json({ error: `Invalid type. Must be one of: ${validTypes.join(', ')}` });
+  const allowedTypes = ['occurrences', 'incidents', 'risks', 'compliance'];
+  if (!allowedTypes.includes(type)) {
+    return res.status(400).json({ 
+      error: 'Invalid data type',
+      hint: `Allowed types: ${allowedTypes.join(', ')}`
+    });
   }
 
-  let syncedCount = 0;
-  let errorCount = 0;
-  const tableName = type;
+  const records = Array.isArray(data) ? data : [data];
+  if (records.length === 0) {
+    return res.json({ 
+      success: true, 
+      message: 'No data to sync',
+      processed: 0,
+      timestamp: new Date().toISOString()
+    });
+  }
 
-  // Process each item in the data array
-  const processItem = (index) => {
-    if (index >= data.length) {
-      // All items processed
-      return res.json({ 
-        type, 
-        synced: syncedCount, 
-        errors: errorCount,
-        total: data.length,
-        message: `Sync completed for ${type}` 
-      });
-    }
+  let processed = 0;
+  let errors = [];
+  const total = records.length;
 
-    const item = data[index];
-    if (!item.id) {
-      errorCount++;
-      return processItem(index + 1);
-    }
-
-    // Insert or update item
-    const keys = Object.keys(item);
-    const placeholders = keys.map(() => '?').join(',');
+  // Process each record
+  records.forEach((record, index) => {
+    const id = record.id || Date.now().toString() + '_' + index;
+    const now = new Date().toISOString();
     
-    db.run(
-      `INSERT OR REPLACE INTO ${tableName} (${keys.join(',')}) VALUES (${placeholders})`,
-      Object.values(item),
-      function(err) {
-        if (err) {
-          console.error(`Sync error for ${type}:`, err);
-          errorCount++;
-        } else {
-          syncedCount++;
-        }
-        processItem(index + 1);
-      }
-    );
-  };
+    // Prepare data based on type
+    let sql, params;
+    
+    if (type === 'occurrences') {
+      sql = `INSERT OR REPLACE INTO occurrences 
+             (id, title, description, type, priority, status, factory, location, reportedBy, reportedDate, createdAt, updatedAt, data)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+      params = [
+        id, record.title, record.description, record.type, record.priority,
+        record.status, record.factory, record.location, record.reportedBy,
+        record.reportedDate, record.createdAt || now, now, JSON.stringify(record.data || {})
+      ];
+    } else if (type === 'incidents') {
+      sql = `INSERT OR REPLACE INTO incidents 
+             (id, title, description, type, severity, status, factory, location, reportedBy, reportedDate, createdAt, updatedAt, data)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+      params = [
+        id, record.title, record.description, record.type, record.severity,
+        record.status, record.factory, record.location, record.reportedBy,
+        record.reportedDate, record.createdAt || now, now, JSON.stringify(record.data || {})
+      ];
+    } else if (type === 'risks') {
+      sql = `INSERT OR REPLACE INTO risks 
+             (id, title, description, likelihood, impact, riskLevel, status, factory, category, assignedTo, dueDate, createdAt, updatedAt, data)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+      params = [
+        id, record.title, record.description, record.likelihood, record.impact,
+        record.riskLevel, record.status, record.factory, record.category,
+        record.assignedTo, record.dueDate, record.createdAt || now, now, JSON.stringify(record.data || {})
+      ];
+    } else if (type === 'compliance') {
+      sql = `INSERT OR REPLACE INTO compliance 
+             (id, title, description, status, factory, dueDate, assignedTo, createdAt, updatedAt, data)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+      params = [
+        id, record.title, record.description, record.status, record.factory,
+        record.dueDate, record.assignedTo, record.createdAt || now, now, JSON.stringify(record.data || {})
+      ];
+    }
 
-  processItem(0);
+    // Execute the insert
+    db.run(sql, params, function(err) {
+      if (err) {
+        console.error(`Error syncing ${type} record ${id}:`, err);
+        errors.push({ 
+          index, 
+          id, 
+          error: err.message 
+        });
+      } else {
+        processed++;
+      }
+
+      // Send response when all records are processed
+      if (index === records.length - 1) {
+        const success = errors.length === 0;
+        const timestamp = new Date().toISOString();
+        
+        // Create backup after successful sync
+        if (success && processed > 0) {
+          try {
+            createDatabaseBackup();
+          } catch (backupErr) {
+            console.warn('Backup creation failed after sync:', backupErr);
+          }
+        }
+
+        res.json({
+          success,
+          message: success ? 'Data sync completed successfully' : 'Data sync completed with errors',
+          type,
+          processed,
+          total,
+          errors: errors.length > 0 ? errors : undefined,
+          timestamp
+        });
+      }
+    });
+  });
 });
 
 // Database viewer endpoint - shows all tables and their data
@@ -730,7 +807,7 @@ app.get('/api/database/schema', (req, res) => {
   });
 });
 
-// ðŸ”’ BACKUP MANAGEMENT ENDPOINTS
+// 🔒 BACKUP MANAGEMENT ENDPOINTS
 // Manual backup creation
 app.post('/api/database/backup', (req, res) => {
   try {
@@ -825,7 +902,3 @@ app.get('*', (_req, res) => {
 app.listen(PORT, () => {
   console.log(`RiskVisio demo running on port ${PORT}`);
 });
-
-
-
-
