@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -26,11 +26,10 @@ export default function ApiSync({ currentUser }: ApiSyncProps) {
       const risks = JSON.parse(localStorage.getItem('risks') || '[]');
       const compliance = JSON.parse(localStorage.getItem('compliance') || '[]');
 
-      const apiUrl = 'http://localhost:3001/api/sync';
+      const apiUrl = '/api/sync';
       const headers = {
         'Content-Type': 'application/json',
-        'x-client-id': 'key_admin',
-        'x-client-secret': 'secret_admin'
+        
       };
 
       // Sync each data type
@@ -151,7 +150,7 @@ export default function ApiSync({ currentUser }: ApiSyncProps) {
           <ol className="text-sm space-y-1 list-decimal list-inside">
             <li>Make sure the API server is running (test connection above)</li>
             <li>Sync your data to the database</li>
-            <li>In Power BI: Get Data → Web → <code>http://localhost:3001/api/occurrences</code></li>
+            <li>In Power BI: Get Data â†’ Web â†’ <code>http://localhost:3001/api/occurrences</code></li>
             <li>Add headers: <code>x-client-id: key_admin</code>, <code>x-client-secret: secret_admin</code></li>
           </ol>
         </div>
@@ -159,3 +158,4 @@ export default function ApiSync({ currentUser }: ApiSyncProps) {
     </Card>
   );
 }
+

@@ -606,6 +606,66 @@ app.post('/api/api-keys/:id/revoke', (req, res) => {
   });
 });
 
+
+// Sync data from frontend localStorage to database
+app.post('/api/sync', (req, res) => {
+  const { type, data } = req.body;
+  
+  if (!type || !Array.isArray(data)) {
+    return res.status(400).json({ error: 'Type and data array required' });
+  }
+
+  // Validate type
+  const validTypes = ['occurrences', 'incidents', 'risks', 'compliance'];
+  if (!validTypes.includes(type)) {
+    return res.status(400).json({ error: `Invalid type. Must be one of: ${validTypes.join(', ')}` });
+  }
+
+  let syncedCount = 0;
+  let errorCount = 0;
+  const tableName = type;
+
+  // Process each item in the data array
+  const processItem = (index) => {
+    if (index >= data.length) {
+      // All items processed
+      return res.json({ 
+        type, 
+        synced: syncedCount, 
+        errors: errorCount,
+        total: data.length,
+        message: `Sync completed for ${type}` 
+      });
+    }
+
+    const item = data[index];
+    if (!item.id) {
+      errorCount++;
+      return processItem(index + 1);
+    }
+
+    // Insert or update item
+    const keys = Object.keys(item);
+    const placeholders = keys.map(() => '?').join(',');
+    
+    db.run(
+      `INSERT OR REPLACE INTO ${tableName} (${keys.join(',')}) VALUES (${placeholders})`,
+      Object.values(item),
+      function(err) {
+        if (err) {
+          console.error(`Sync error for ${type}:`, err);
+          errorCount++;
+        } else {
+          syncedCount++;
+        }
+        processItem(index + 1);
+      }
+    );
+  };
+
+  processItem(0);
+});
+
 // Database viewer endpoint - shows all tables and their data
 app.get('/api/database', (req, res) => {
   const tables = ['occurrences', 'incidents', 'risks', 'compliance', 'investigations'];
@@ -765,6 +825,7 @@ app.get('*', (_req, res) => {
 app.listen(PORT, () => {
   console.log(`RiskVisio demo running on port ${PORT}`);
 });
+
 
 
 
