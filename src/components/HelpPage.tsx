@@ -37,6 +37,7 @@ const HelpPage = () => {
   const sections = [
     { id: 'overview', title: 'Overview', icon: Book },
     { id: 'getting-started', title: 'Getting Started', icon: UserCheck },
+    { id: 'changelog', title: 'Changelog', icon: Activity },
     { id: 'data-protection', title: 'Data Protection', icon: Shield },
     { id: 'api-usage', title: 'API Usage', icon: Code },
     { id: 'user-management', title: 'User Management', icon: Users },
@@ -235,6 +236,168 @@ const HelpPage = () => {
                             <span className="font-medium">Investigations</span>
                           </div>
                           <p className="text-sm text-gray-600">Conduct thorough incident investigations</p>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
+            {activeSection === 'changelog' && (
+              <div className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center">
+                      <Activity className="w-5 h-5 mr-2" />
+                      Changelog
+                    </CardTitle>
+                    <CardDescription>
+                      Recent updates and improvements to RiskVisio
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <div className="space-y-6">
+                      {/* Version 0.3.0-beta */}
+                      <div className="border-l-4 border-blue-500 pl-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <h3 className="text-lg font-semibold text-blue-900">Version 0.3.0-beta</h3>
+                          <Badge variant="default">Current Beta</Badge>
+                        </div>
+                        <p className="text-sm text-gray-600 mb-3">Released: September 2025</p>
+                        
+                        <div className="space-y-3">
+                          <div>
+                            <h4 className="font-medium text-green-700 mb-1">🎨 UI/UX Improvements</h4>
+                            <ul className="text-sm text-gray-700 space-y-1 ml-4">
+                              <li>• Custom RiskVisio logo integration with responsive design</li>
+                              <li>• Enhanced occurrence form layout with improved text wrapping</li>
+                              <li>• Fixed layout shifting issues during dropdown interactions</li>
+                              <li>• Optimized location field display to show only relevant information</li>
+                            </ul>
+                          </div>
+                          
+                          <div>
+                            <h4 className="font-medium text-blue-700 mb-1">🔧 Bug Fixes</h4>
+                            <ul className="text-sm text-gray-700 space-y-1 ml-4">
+                              <li>• Resolved critical auto-fill issue in occurrence forms</li>
+                              <li>• Fixed data integrity problems when viewing existing occurrences</li>
+                              <li>• Improved Azure deployment reliability and connection handling</li>
+                            </ul>
+                          </div>
+                          
+                          <div>
+                            <h4 className="font-medium text-purple-700 mb-1">📱 Mobile Experience</h4>
+                            <ul className="text-sm text-gray-700 space-y-1 ml-4">
+                              <li>• Enhanced mobile responsiveness across all components</li>
+                              <li>• Improved touch target sizes for better usability</li>
+                              <li>• Optimized form layouts for smaller screens</li>
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Version 0.2.0-beta */}
+                      <div className="border-l-4 border-orange-500 pl-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <h3 className="text-lg font-semibold text-orange-900">Version 0.2.0-beta</h3>
+                          <Badge variant="secondary">Previous Beta</Badge>
+                        </div>
+                        <p className="text-sm text-gray-600 mb-3">Released: August 2025</p>
+                        
+                        <div className="space-y-3">
+                          <div>
+                            <h4 className="font-medium text-blue-700 mb-1">🔐 Security Enhancements</h4>
+                            <ul className="text-sm text-gray-700 space-y-1 ml-4">
+                              <li>• Implemented dual credential authentication system</li>
+                              <li>• Added SHA-256 hashing for enhanced security</li>
+                              <li>• Secure token management with automatic expiration</li>
+                            </ul>
+                          </div>
+                          
+                          <div>
+                            <h4 className="font-medium text-green-700 mb-1">✨ New Features</h4>
+                            <ul className="text-sm text-gray-700 space-y-1 ml-4">
+                              <li>• Comprehensive help documentation system</li>
+                              <li>• Advanced user management capabilities</li>
+                              <li>• Enhanced occurrence tracking and reporting</li>
+                              <li>• Improved data synchronization</li>
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Upcoming Features */}
+                      <div className="bg-gray-50 p-4 rounded-lg">
+                        <h3 className="text-lg font-semibold text-gray-800 mb-2">🚀 Development Roadmap</h3>
+                        <div className="space-y-4">
+                          {/* Phase 1 - Current */}
+                          <div className="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-500">
+                            <div className="flex items-center justify-between mb-2">
+                              <h4 className="font-semibold text-blue-900">Phase 1: Core Stability</h4>
+                              <Badge variant="default" className="bg-blue-600">Current Focus</Badge>
+                            </div>
+                            <p className="text-sm text-blue-700 mb-2">Target: v0.4-beta</p>
+                            <ul className="text-sm text-blue-800 space-y-1">
+                              <li>✅ Dual authentication system</li>
+                              <li>✅ Mobile-responsive design</li>
+                              <li>✅ Critical bug fixes and data integrity</li>
+                              <li>🔄 Performance optimization</li>
+                              <li>🔄 Comprehensive testing suite</li>
+                              <li>📋 User feedback integration</li>
+                            </ul>
+                          </div>
+
+                          {/* Phase 2 - Next */}
+                          <div className="bg-green-50 p-4 rounded-lg border-l-4 border-green-500">
+                            <div className="flex items-center justify-between mb-2">
+                              <h4 className="font-semibold text-green-900">Phase 2: Analytics & Reporting</h4>
+                              <Badge variant="secondary" className="bg-green-100 text-green-800">Next</Badge>
+                            </div>
+                            <p className="text-sm text-green-700 mb-2">Target: v0.5-beta</p>
+                            <ul className="text-sm text-green-800 space-y-1">
+                              <li>📊 Advanced dashboard with charts and graphs</li>
+                              <li>📈 Risk trend analysis and predictions</li>
+                              <li>📋 Customizable report generation</li>
+                              <li>📤 Export capabilities (PDF, Excel, CSV)</li>
+                              <li>🔔 Automated alerts and notifications</li>
+                              <li>📅 Scheduled reporting system</li>
+                            </ul>
+                          </div>
+
+                          {/* Phase 3 - Future */}
+                          <div className="bg-purple-50 p-4 rounded-lg border-l-4 border-purple-500">
+                            <div className="flex items-center justify-between mb-2">
+                              <h4 className="font-semibold text-purple-900">Phase 3: Enterprise Features</h4>
+                              <Badge variant="outline" className="border-purple-500 text-purple-700">Planned</Badge>
+                            </div>
+                            <p className="text-sm text-purple-700 mb-2">Target: v0.8-beta</p>
+                            <ul className="text-sm text-purple-800 space-y-1">
+                              <li>🏢 Multi-tenant architecture</li>
+                              <li>🔐 Single Sign-On (SSO) integration</li>
+                              <li>👥 Advanced role-based permissions</li>
+                              <li>🌐 Multi-language support</li>
+                              <li>🔌 Third-party system integrations</li>
+                              <li>📱 Native mobile applications</li>
+                            </ul>
+                          </div>
+
+                          {/* Phase 4 - Production */}
+                          <div className="bg-orange-50 p-4 rounded-lg border-l-4 border-orange-500">
+                            <div className="flex items-center justify-between mb-2">
+                              <h4 className="font-semibold text-orange-900">Phase 4: Production Ready</h4>
+                              <Badge variant="outline" className="border-orange-500 text-orange-700">v1.0 Goal</Badge>
+                            </div>
+                            <p className="text-sm text-orange-700 mb-2">Target: v1.0-stable</p>
+                            <ul className="text-sm text-orange-800 space-y-1">
+                              <li>🛡️ Security audit and compliance certification</li>
+                              <li>⚡ High-availability deployment options</li>
+                              <li>📚 Comprehensive documentation</li>
+                              <li>🎓 Training materials and tutorials</li>
+                              <li>🔧 Professional support channels</li>
+                              <li>🌟 Enterprise-grade SLA guarantees</li>
+                            </ul>
+                          </div>
                         </div>
                       </div>
                     </div>
