@@ -12,16 +12,6 @@ const app = express();
 const PORT = process.env.PORT || 8080;
 
 // Middleware
-app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-api-key, x-client-id, x-client-secret, x-admin-key');
-  if (req.method === 'OPTIONS') {
-    res.sendStatus(200);
-  } else {
-    next();
-  }
-});
 app.use(express.json());
 
 // Environment fallback single API key (legacy) & optional admin key for key management endpoints

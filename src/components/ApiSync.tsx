@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { apiFetch, getApiUrl } from '@/lib/api-config';
 import { Badge } from '@/components/ui/badge';
 
 interface ApiSyncProps {
@@ -26,12 +27,7 @@ export default function ApiSync({ currentUser }: ApiSyncProps) {
       const risks = JSON.parse(localStorage.getItem('risks') || '[]');
       const compliance = JSON.parse(localStorage.getItem('compliance') || '[]');
 
-      const apiUrl = 'http://localhost:3001/api/sync';
-      const headers = {
-        'Content-Type': 'application/json',
-        'x-client-id': 'key_admin',
-        'x-client-secret': 'secret_admin'
-      };
+      const apiUrl = getApiUrl('/api/sync');
 
       // Sync each data type
       const syncPromises = [
@@ -40,9 +36,8 @@ export default function ApiSync({ currentUser }: ApiSyncProps) {
         { type: 'risks', data: risks },
         { type: 'compliance', data: compliance }
       ].map(async ({ type, data }) => {
-        const response = await fetch(apiUrl, {
+        const response = await apiFetch('/api/sync', {
           method: 'POST',
-          headers,
           body: JSON.stringify({ type, data })
         });
 
@@ -69,7 +64,7 @@ export default function ApiSync({ currentUser }: ApiSyncProps) {
 
   const testApiConnection = async () => {
     try {
-      const response = await fetch('http://localhost:3001/health');
+  const response = await apiFetch('/health');
       const data = await response.json();
       
       if (response.ok) {
@@ -81,7 +76,7 @@ export default function ApiSync({ currentUser }: ApiSyncProps) {
       }
     } catch (error) {
       setSyncStatus('error');
-      setSyncMessage('Cannot connect to API server. Make sure it\'s running on port 3001.');
+  setSyncMessage('Cannot connect to API server. Please verify the Azure backend URL and credentials.');
     }
   };
 
@@ -151,8 +146,8 @@ export default function ApiSync({ currentUser }: ApiSyncProps) {
           <ol className="text-sm space-y-1 list-decimal list-inside">
             <li>Make sure the API server is running (test connection above)</li>
             <li>Sync your data to the database</li>
-            <li>In Power BI: Get Data → Web → <code>http://localhost:3001/api/occurrences</code></li>
-            <li>Add headers: <code>x-client-id: key_admin</code>, <code>x-client-secret: secret_admin</code></li>
+            <li>In Power BI: Get Data → Web → <code>{getApiUrl('/api/occurrences')}</code></li>
+            <li>Add headers as needed: <code>x-client-id</code> and <code>x-client-secret</code> (or <code>x-api-key</code>)</li>
           </ol>
         </div>
       </CardContent>

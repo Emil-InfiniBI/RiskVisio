@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { apiFetch } from '@/lib/api-config';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
@@ -26,7 +27,7 @@ export default function ApiKeyManagement({ currentUser }: ApiKeyManagementProps)
   // Load API keys from backend
   const loadKeys = async () => {
     try {
-      const res = await fetch('/api/api-keys');
+      const res = await apiFetch('/api/api-keys');
       if (!res.ok) throw new Error('Failed');
       const data = await res.json();
       setApiKeys(Array.isArray(data) ? data : []);
@@ -65,7 +66,7 @@ export default function ApiKeyManagement({ currentUser }: ApiKeyManagementProps)
     };
 
     // Call backend
-    fetch('/api/api-keys', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: newKeyName.trim(), accessType: newKeyAccess, createdBy: currentUser }) })
+    apiFetch('/api/api-keys', { method: 'POST', body: JSON.stringify({ name: newKeyName.trim(), accessType: newKeyAccess, createdBy: currentUser }) })
       .then(async r => {
         if (!r.ok) throw new Error('create failed');
         const created = await r.json();
@@ -81,7 +82,7 @@ export default function ApiKeyManagement({ currentUser }: ApiKeyManagementProps)
 
   // Revoke API key
   const revokeApiKey = (keyId: string) => {
-    fetch(`/api/api-keys/${keyId}/revoke`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ revokedBy: currentUser }) })
+    apiFetch(`/api/api-keys/${keyId}/revoke`, { method: 'POST', body: JSON.stringify({ revokedBy: currentUser }) })
       .then(()=> loadKeys())
       .catch(()=>{});
   };

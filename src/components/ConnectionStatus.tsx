@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { RefreshCw, AlertTriangle, CheckCircle } from 'lucide-react';
+import { getApiUrl } from '@/lib/api-config';
 
 interface ConnectionStatusProps {
   onRetry?: () => void;
@@ -14,7 +15,7 @@ export function ConnectionStatus({ onRetry }: ConnectionStatusProps) {
   const checkConnection = async () => {
     setStatus('checking');
     try {
-      const response = await fetch('/api/health', { 
+      const response = await fetch(getApiUrl('/health'), { 
         method: 'GET',
         signal: AbortSignal.timeout(5000) // 5 second timeout
       });

@@ -164,27 +164,14 @@ export function Dashboard({ incidents, risks, compliance, investigations, occurr
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
           {/* Days Since Last Accident - Featured Card */}
-          <Card className={`relative overflow-hidden border-2 transition-all duration-200 hover:shadow-lg ${
-            daysSinceLastAccident === null ? 'border-gray-200 bg-gray-50' : 
-            daysSinceLastAccident >= 30 ? 'border-green-200 bg-green-50' : 
-            daysSinceLastAccident >= 7 ? 'border-yellow-200 bg-yellow-50' : 
-            'border-red-200 bg-red-50'
-          }`}>
+          <Card className="relative overflow-hidden border-2 transition-all duration-200 hover:shadow-lg border-gray-200 bg-gray-50">
             <div className="absolute top-0 right-0 w-20 h-20 opacity-10">
               <Clock className="w-full h-full" />
             </div>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                <div className={`p-1.5 rounded-full ${
-                  daysSinceLastAccident === null ? 'bg-gray-100' :
-                  daysSinceLastAccident >= 30 ? 'bg-green-100' :
-                  daysSinceLastAccident >= 7 ? 'bg-yellow-100' : 'bg-red-100'
-                }`}>
-                  <Clock className={`h-3 w-3 ${
-                    daysSinceLastAccident === null ? 'text-gray-600' :
-                    daysSinceLastAccident >= 30 ? 'text-green-600' :
-                    daysSinceLastAccident >= 7 ? 'text-yellow-600' : 'text-red-600'
-                  }`} />
+                <div className="p-1.5 rounded-full bg-gray-100">
+                  <Clock className="h-3 w-3 text-gray-600" />
                 </div>
                 Days Since Last Accident
               </CardTitle>
@@ -192,11 +179,7 @@ export function Dashboard({ incidents, risks, compliance, investigations, occurr
             <CardContent className="pt-0">
               <div className="space-y-2">
                 <div className="flex items-baseline gap-2">
-                  <span className={`text-3xl font-bold tracking-tight ${
-                    daysSinceLastAccident === null ? 'text-gray-400' :
-                    daysSinceLastAccident >= 30 ? 'text-green-600' :
-                    daysSinceLastAccident >= 7 ? 'text-yellow-600' : 'text-red-600'
-                  }`}>
+                  <span className="text-3xl font-bold tracking-tight text-gray-900">
                     {daysSinceLastAccident !== null ? daysSinceLastAccident : '—'}
                   </span>
                   {daysSinceLastAccident !== null && (
@@ -207,41 +190,11 @@ export function Dashboard({ incidents, risks, compliance, investigations, occurr
                   {daysSinceLastAccident === null && (
                     <span className="text-gray-500">No accidents recorded</span>
                   )}
-                  {daysSinceLastAccident !== null && daysSinceLastAccident < 7 && (
-                    <span className="text-red-600">Recent accident - focus on prevention</span>
-                  )}
-                  {daysSinceLastAccident !== null && daysSinceLastAccident >= 7 && daysSinceLastAccident < 30 && (
-                    <span className="text-yellow-600">Good progress - maintain momentum</span>
-                  )}
-                  {daysSinceLastAccident !== null && daysSinceLastAccident >= 30 && (
-                    <span className="text-green-600">Excellent safety record!</span>
+                  {daysSinceLastAccident !== null && (
+                    <span className="text-gray-600">Last accident: {lastAccidentDate?.toLocaleDateString()}</span>
                   )}
                 </div>
               </div>
-            </CardContent>
-          </Card>
-
-          {/* Monthly Incidents */}
-          <Card className="hover:shadow-lg transition-shadow duration-200">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                <div className="p-1.5 rounded-full bg-blue-100">
-                  <AlertCircle className="h-3 w-3 text-blue-600" />
-                </div>
-                Monthly Incidents
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <div className="flex items-center justify-between">
-                <span className="text-3xl font-bold text-gray-900">{thisMonthIncidents.length}</span>
-                <div className="flex items-center gap-1">
-                  <incidentTrend.icon className={`h-4 w-4 ${incidentTrend.color}`} />
-                  <span className="text-xs text-gray-500">vs last month</span>
-                </div>
-              </div>
-              <p className="text-xs text-gray-500 mt-1">
-                {lastMonthIncidents.length} incidents last month
-              </p>
             </CardContent>
           </Card>
 

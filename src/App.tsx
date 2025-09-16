@@ -19,6 +19,7 @@ import { OccurrenceFormPage } from '@/components/OccurrenceFormPage';
 import { OccurrenceList } from '@/components/OccurrenceList';
 import { Dashboard } from '@/components/Dashboard';
 import { InvestigationForm } from '@/components/InvestigationForm';
+import { apiFetch, getApiUrl } from '@/lib/api-config';
 import AdminPage from '@/components/AdminPage';
 import HelpPage from '@/components/HelpPage';
 
@@ -42,8 +43,8 @@ function App() {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
         
-        const usersRes = await fetch('/api/users', { signal: controller.signal });
-        const occRes = await fetch('/api/occurrences', { signal: controller.signal });
+  const usersRes = await apiFetch('/api/users', { signal: controller.signal });
+  const occRes = await apiFetch('/api/occurrences', { signal: controller.signal });
         
         clearTimeout(timeoutId);
         
@@ -98,9 +99,8 @@ function App() {
           // Create users one by one to avoid race conditions
           for (const user of defaultUsers) {
             try {
-              await fetch('/api/users', { 
+              await apiFetch('/api/users', { 
                 method: 'POST', 
-                headers: { 'Content-Type': 'application/json' }, 
                 body: JSON.stringify(user) 
               });
               console.log('✓ Created default user:', user.username);
@@ -179,7 +179,7 @@ function App() {
   const handleLogin = (user: User) => {
     const updatedUser = { ...user, lastLogin: new Date().toISOString() };
     setUsers((current = []) => current.map(u => u.id === user.id ? updatedUser : u));
-    fetch('/api/users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(updatedUser) }).catch(()=>{});
+  apiFetch('/api/users', { method: 'POST', body: JSON.stringify(updatedUser) }).catch(()=>{});
     setCurrentUser(updatedUser);
     
     // Set default factory for non-admin users
@@ -217,17 +217,17 @@ function App() {
   // User management handlers
   const handleAddUser = (user: User) => {
     setUsers((current = []) => [...current, user]);
-    fetch('/api/users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(user) }).catch(()=>{});
+  apiFetch('/api/users', { method: 'POST', body: JSON.stringify(user) }).catch(()=>{});
   };
 
   const handleUpdateUser = (updatedUser: User) => {
     setUsers((current = []) => current.map(user => user.id === updatedUser.id ? updatedUser : user));
-    fetch('/api/users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(updatedUser) }).catch(()=>{});
+  apiFetch('/api/users', { method: 'POST', body: JSON.stringify(updatedUser) }).catch(()=>{});
   };
 
   const handleDeleteUser = (id: string) => {
     setUsers((current = []) => current.filter(user => user.id !== id));
-    fetch(`/api/users/${id}`, { method: 'DELETE' }).catch(()=>{});
+  apiFetch(`/api/users/${id}`, { method: 'DELETE' }).catch(()=>{});
   };
 
   // Permission checks
@@ -386,7 +386,7 @@ function App() {
 
   const handleAddOccurrence = (occurrence: Occurrence) => {
     setOccurrences((current = []) => [occurrence, ...current]);
-    fetch('/api/occurrences', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(occurrence) })
+  apiFetch('/api/occurrences', { method: 'POST', body: JSON.stringify(occurrence) })
       .catch(()=>{})
       .finally(() => setShowOccurrenceForm(false));
   };
@@ -397,7 +397,7 @@ function App() {
         occurrence.id === updatedOccurrence.id ? updatedOccurrence : occurrence
       )
     );
-    fetch('/api/occurrences', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(updatedOccurrence) }).catch(()=>{});
+  apiFetch('/api/occurrences', { method: 'POST', body: JSON.stringify(updatedOccurrence) }).catch(()=>{});
     setEditingItem(null);
   };
 
